@@ -9,7 +9,7 @@ interface AuthContextValue {
   token: string | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (username: string, email: string, password: string) => Promise<void>;
+  register: (username: string, handle: string, email: string, password: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -52,9 +52,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(res.user);
   }, []);
 
-  const register = useCallback(async (username: string, email: string, password: string) => {
+  const register = useCallback(async (username: string, handle: string, email: string, password: string) => {
     const res = await api.post<{ access_token: string; user: User }>('/api/auth/register', {
       username,
+      handle: handle.replace(/^@/, '').trim().toLowerCase(),
       email,
       password,
     });

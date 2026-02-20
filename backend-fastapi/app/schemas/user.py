@@ -5,15 +5,20 @@ from pydantic import BaseModel, EmailStr
 
 class UserBase(BaseModel):
     username: str
+    handle: str
     email: EmailStr
 
 
-class UserCreate(UserBase):
+class UserCreate(BaseModel):
+    username: str
+    handle: str  # уникальный ID (латиница, цифры, _), без @
+    email: EmailStr
     password: str
 
 
 class UserUpdate(BaseModel):
     username: str | None = None
+    handle: str | None = None
     avatar: str | None = None
     online_status: str | None = None
 

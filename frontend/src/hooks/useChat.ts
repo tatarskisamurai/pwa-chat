@@ -1,6 +1,16 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/services/api';
 import type { Chat, Message } from '@/types/chat';
+import type { User } from '@/types/user';
+
+export function useUsersList(search: string) {
+  const term = search.replace(/^@/, '').trim().toLowerCase();
+  return useQuery({
+    queryKey: ['users', 'list', term],
+    queryFn: () => api.get<User[]>(`/api/users/list?search=${encodeURIComponent(term)}`),
+    enabled: term.length >= 1,
+  });
+}
 
 export function useChatList() {
   return useQuery({

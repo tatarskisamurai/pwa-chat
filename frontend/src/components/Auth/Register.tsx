@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '@/contexts/AuthContext';
-import { isValidEmail, isValidPassword, isValidUsername } from '@/utils/validators';
+import { isValidEmail, isValidPassword, isValidUsername, isValidHandle } from '@/utils/validators';
 
 interface FormData {
   username: string;
+  handle: string;
   email: string;
   password: string;
 }
@@ -18,7 +19,7 @@ export function Register() {
   const onSubmit = async (data: FormData) => {
     setError('');
     try {
-      await registerUser(data.username, data.email, data.password);
+      await registerUser(data.username, data.handle, data.email, data.password);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Ошибка регистрации');
     }
@@ -31,14 +32,26 @@ export function Register() {
         <div>
           <input
             type="text"
-            placeholder="Имя пользователя"
+            placeholder="Имя (как хотите)"
             className="w-full rounded-lg border border-slate-600 bg-slate-700/50 px-4 py-2 text-white placeholder-slate-400 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
             {...register('username', {
               required: 'Введите имя',
-              validate: (v) => isValidUsername(v) || 'Латиница, цифры, 2+ символа',
+              validate: (v) => isValidUsername(v) || 'Введите имя',
             })}
           />
           {errors.username && <p className="mt-1 text-sm text-red-400">{errors.username.message}</p>}
+        </div>
+        <div>
+          <input
+            type="text"
+            placeholder="ID (латиница, цифры, _) — по нему вас найдут"
+            className="w-full rounded-lg border border-slate-600 bg-slate-700/50 px-4 py-2 text-white placeholder-slate-400 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+            {...register('handle', {
+              required: 'Введите ID',
+              validate: (v) => isValidHandle(v) || 'Латиница, цифры, _, от 2 символов (без @)',
+            })}
+          />
+          {errors.handle && <p className="mt-1 text-sm text-red-400">{errors.handle.message}</p>}
         </div>
         <div>
           <input

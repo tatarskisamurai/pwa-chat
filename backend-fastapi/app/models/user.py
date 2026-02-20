@@ -10,7 +10,8 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    username = Column(String(50), unique=True, nullable=False, index=True)
+    username = Column(String(50), nullable=False)  # имя (любое)
+    handle = Column(String(50), unique=True, nullable=False, index=True)  # уникальный ID для поиска (@handle)
     email = Column(String(255), unique=True, nullable=False, index=True)
     password_hash = Column(String(255), nullable=False)
     avatar = Column(String(500), nullable=True)

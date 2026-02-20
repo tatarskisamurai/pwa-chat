@@ -8,6 +8,7 @@ try:
     from app.api.endpoints import auth, users, chats, messages
     from app.database import engine
     from app.models import Base
+    from app.migrate_handle import run_handle_migration
 except Exception as e:
     print(f"App import failed: {type(e).__name__}: {e}", file=sys.stderr)
     raise
@@ -17,6 +18,7 @@ except Exception as e:
 async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        await run_handle_migration(conn)
     yield
     await engine.dispose()
 
@@ -60,7 +62,8 @@ app.add_middleware(
 )
 
 app.include_router(auth.router, prefix="/api")
-app.include_router(users.router, prefix="/api")
+app.include_router(users.router, prefix="/api")  # /list, /me — до роутера с {user_id}
+app.include_router(users.router_with_id, prefix="/api")
 app.include_router(chats.router, prefix="/api")
 app.include_router(messages.router, prefix="/api")
 

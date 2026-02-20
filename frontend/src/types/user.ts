@@ -1,6 +1,7 @@
 export interface User {
   id: string;
   username: string;
+  handle: string;
   email: string;
   avatar?: string | null;
   online_status: string;
@@ -20,4 +21,5 @@ export interface LoginCredentials {
 
 export interface RegisterCredentials extends LoginCredentials {
   username: string;
+  handle: string;
 }

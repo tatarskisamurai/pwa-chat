@@ -9,16 +9,24 @@ from app.core.security import verify_password, get_password_hash, create_access_
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
+def _normalize_handle(handle: str) -> str:
+    return handle.strip().lower().replace(" ", "_")
+
+
 @router.post("/register", response_model=Token)
 async def register(data: UserCreate, db: AsyncSession = Depends(get_db)):
     r = await db.execute(select(User).where(User.email == data.email))
     if r.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="Email already registered")
-    r = await db.execute(select(User).where(User.username == data.username))
+    handle = _normalize_handle(data.handle)
+    if not handle or len(handle) < 2:
+        raise HTTPException(status_code=400, detail="ID должен быть от 2 символов (латиница, цифры, _)")
+    r = await db.execute(select(User).where(User.handle == handle))
     if r.scalar_one_or_none():
-        raise HTTPException(status_code=400, detail="Username already taken")
+        raise HTTPException(status_code=400, detail="Этот ID уже занят")
     user = User(
         username=data.username,
+        handle=handle,
         email=data.email,
         password_hash=get_password_hash(data.password),
     )
