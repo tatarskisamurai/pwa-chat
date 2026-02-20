@@ -1,0 +1,65 @@
+# === OS ===
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# === IDE / Editor ===
+.idea/
+.vscode/
+*.sublime-*
+
+# === Python (FastAPI) ===
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+.env
+.env.local
+*.egg-info/
+.eggs/
+dist/
+build/
+.mypy_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+*.log
+
+# === Node (backend-node, frontend) ===
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.eslintcache
+.env
+.env.local
+.env.*.local
+dist/
+.next/
+out/
+*.tsbuildinfo
+
+# === Docker ===
+.env
+.env.local
+*.log
+
+# === PWA / Frontend build ===
+frontend/dist/
+*.local
+
+# === Secrets / Local config ===
+*.pem
+.env
+!.env.example
+
+# === Optional: lock files (раскомментируй, если не коммитить)
+# package-lock.json
+# Pipfile.lock

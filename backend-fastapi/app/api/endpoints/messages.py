@@ -1,0 +1,89 @@
+from uuid import UUID
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from sqlalchemy.orm import selectinload
+from app.database import get_db
+from app.models import User, Chat, ChatMember, Message, Attachment
+from app.schemas.message import MessageCreate, MessageResponse, AttachmentResponse
+from app.api.deps import get_current_user
+
+router = APIRouter(prefix="/messages", tags=["messages"])
+
+
+def _message_to_response(msg: Message) -> dict:
+    return {
+        "id": msg.id,
+        "chat_id": msg.chat_id,
+        "user_id": msg.user_id,
+        "content": msg.content,
+        "type": msg.type,
+        "created_at": msg.created_at,
+        "attachments": [AttachmentResponse.model_validate(a) for a in msg.attachments],
+    }
+
+
+@router.get("/chat/{chat_id}", response_model=list[MessageResponse])
+async def list_messages(
+    chat_id: UUID,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    r = await db.execute(select(ChatMember).where(ChatMember.chat_id == chat_id, ChatMember.user_id == current_user.id))
+    if not r.scalar_one_or_none():
+        raise HTTPException(status_code=403, detail="Not a member")
+    result = await db.execute(
+        select(Message)
+        .where(Message.chat_id == chat_id)
+        .options(selectinload(Message.attachments))
+        .order_by(Message.created_at.desc())
+        .offset(skip)
+        .limit(limit)
+    )
+    messages = result.scalars().all()
+    return [MessageResponse(**_message_to_response(m)) for m in reversed(messages)]
+
+
+@router.post("/chat/{chat_id}", response_model=MessageResponse)
+async def create_message(
+    chat_id: UUID,
+    data: MessageCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    r = await db.execute(select(ChatMember).where(ChatMember.chat_id == chat_id, ChatMember.user_id == current_user.id))
+    if not r.scalar_one_or_none():
+        raise HTTPException(status_code=403, detail="Not a member")
+    msg = Message(
+        chat_id=chat_id,
+        user_id=current_user.id,
+        content=data.content,
+        type=data.type or "text",
+    )
+    db.add(msg)
+    await db.commit()
+    await db.refresh(msg)
+    return MessageResponse(**_message_to_response(msg))
+
+
+@router.get("/search", response_model=list[MessageResponse])
+async def search_messages(
+    q: str = Query(..., min_length=1),
+    chat_id: UUID | None = Query(None),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    from sqlalchemy import or_
+    subq = select(ChatMember.chat_id).where(ChatMember.user_id == current_user.id)
+    query = select(Message).options(selectinload(Message.attachments)).where(
+        Message.chat_id.in_(subq),
+        Message.content.ilike(f"%{q}%"),
+    )
+    if chat_id:
+        query = query.where(Message.chat_id == chat_id)
+    query = query.order_by(Message.created_at.desc()).limit(50)
+    result = await db.execute(query)
+    messages = result.scalars().all()
+    return [MessageResponse(**_message_to_response(m)) for m in messages]

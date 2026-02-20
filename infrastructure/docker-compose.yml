@@ -1,0 +1,97 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: chat-postgres
+    environment:
+      POSTGRES_USER: chat
+      POSTGRES_PASSWORD: chat_secret
+      POSTGRES_DB: chat_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chat -d chat_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: chat-redis
+    command: redis-server /usr/local/etc/redis/redis.conf
+    volumes:
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  backend-fastapi:
+    build:
+      context: ../backend-fastapi
+      dockerfile: Dockerfile
+    container_name: chat-fastapi
+    environment:
+      DATABASE_URL: postgresql+asyncpg://chat:chat_secret@postgres:5432/chat_db
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-key-change-in-production}
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  backend-node:
+    build:
+      context: ../backend-node
+      dockerfile: Dockerfile
+    container_name: chat-node
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      FASTAPI_URL: http://backend-fastapi:8000
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-key-change-in-production}
+    ports:
+      - "3001:3001"
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile.dev
+    container_name: chat-frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ../frontend:/app
+      - /app/node_modules
+    environment:
+      VITE_API_URL: http://localhost:8000
+      VITE_WS_URL: http://localhost:3001
+
+  nginx:
+    image: nginx:alpine
+    container_name: chat-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend-fastapi
+      - backend-node
+      - frontend
+    profiles:
+      - production
+
+volumes:
+  postgres_data:
