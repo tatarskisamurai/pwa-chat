@@ -80,7 +80,7 @@ export function ChatWindow({ chatId }: ChatWindowProps) {
     );
 
     if (connected) {
-      getSocket()?.emit('send_message', { chatId, content });
+      getSocket()?.emit('send_message', { chat_id: chatId, content });
       return;
     }
     await sendMessageRest.mutateAsync({

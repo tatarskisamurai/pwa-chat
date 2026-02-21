@@ -1,10 +1,9 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { Socket } from 'socket.io-client';
 import { useAuth } from './AuthContext';
 import { getSocket, connectSocket, disconnectSocket } from '@/services/socket';
 
 interface SocketContextValue {
-  socket: Socket | null;
+  socket: ReturnType<typeof getSocket>;
   connected: boolean;
   joinChat: (chatId: string) => void;
   leaveChat: (chatId: string) => void;
@@ -51,13 +50,11 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   }, [token]);
 
   const joinChat = useCallback((chatId: string) => {
-    const s = getSocket();
-    s?.emit('join_chat', chatId);
+    getSocket()?.emit('join_chat', { chat_id: chatId });
   }, []);
 
   const leaveChat = useCallback((chatId: string) => {
-    const s = getSocket();
-    s?.emit('leave_chat', chatId);
+    getSocket()?.emit('leave_chat', { chat_id: chatId });
   }, []);
 
   const value: SocketContextValue = { socket, connected, joinChat, leaveChat };

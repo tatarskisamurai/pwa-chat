@@ -1,11 +1,11 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
+ENV NPM_CONFIG_LOGLEVEL=info NPM_CONFIG_FETCH_TIMEOUT=120000 CI=1
 COPY package*.json ./
-RUN npm install
+RUN npm install --no-audit --no-fund
 COPY . .
 ARG VITE_API_URL=http://localhost:8000
-ARG VITE_WS_URL=http://localhost:3001
-ENV VITE_API_URL=$VITE_API_URL VITE_WS_URL=$VITE_WS_URL
+ENV VITE_API_URL=$VITE_API_URL
 RUN npm run build
 
 FROM nginx:alpine

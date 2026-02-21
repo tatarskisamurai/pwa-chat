@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse
 
 try:
     from app.api.endpoints import auth, users, chats, messages
+    from app.api.ws import get_router as get_ws_router
     from app.database import engine
     from app.models import Base
     from app.migrate_handle import run_handle_migration
@@ -66,6 +67,7 @@ app.include_router(users.router, prefix="/api")  # /list, /me — до роут�
 app.include_router(users.router_with_id, prefix="/api")
 app.include_router(chats.router, prefix="/api")
 app.include_router(messages.router, prefix="/api")
+app.include_router(get_ws_router(), prefix="/api")
 
 
 @app.get("/health")

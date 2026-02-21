@@ -4,7 +4,6 @@ from pydantic import field_validator
 
 class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://chat:chat_secret@localhost:5432/chat_db"
-    redis_url: str = "redis://localhost:6379/0"
     jwt_secret: str = "your-super-secret-key-change-in-production"
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 60

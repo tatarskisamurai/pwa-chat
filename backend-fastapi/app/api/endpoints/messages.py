@@ -7,7 +7,7 @@ from app.database import get_db
 from app.models import User, Chat, ChatMember, Message, Attachment
 from app.schemas.message import MessageCreate, MessageResponse, AttachmentResponse
 from app.api.deps import get_current_user
-from app.redis_pub import publish_new_message
+from app.ws_manager import ws_manager
 
 router = APIRouter(prefix="/messages", tags=["messages"])
 
@@ -77,7 +77,7 @@ async def create_message(
         "attachments": [],
     }
     try:
-        await publish_new_message(chat_id, payload)
+        await ws_manager.broadcast_to_chat(str(chat_id), {"type": "new_message", "message": payload})
     except Exception:
         pass
     return MessageResponse(**resp)
