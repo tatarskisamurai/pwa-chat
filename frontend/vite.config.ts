@@ -9,6 +9,8 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    // Доступ по домену (drun.kiriapp.ru) или IP при деплое dev-сервера
+    allowedHosts: true,
     proxy: {
       '/api': {
         target: process.env.VITE_PROXY_TARGET || 'http://localhost:8000',
