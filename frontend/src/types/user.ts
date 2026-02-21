@@ -2,7 +2,7 @@ export interface User {
   id: string;
   username: string;
   handle: string;
-  email: string;
+  email?: string | null;
   avatar?: string | null;
   online_status: string;
   created_at: string;
@@ -15,11 +15,11 @@ export interface TokenResponse {
 }
 
 export interface LoginCredentials {
-  email: string;
+  username: string;
   password: string;
 }
 
-export interface RegisterCredentials extends LoginCredentials {
+export interface RegisterCredentials {
   username: string;
-  handle: string;
+  password: string;
 }

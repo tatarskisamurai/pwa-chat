@@ -1,5 +1,10 @@
-"""Миграция: добавить колонку handle в users при старте приложения."""
+"""Миграции при старте приложения."""
 from sqlalchemy import text
+
+
+async def run_email_nullable_migration(conn):
+    """Сделать email необязательным (регистрация только по нику и паролю)."""
+    await conn.execute(text("ALTER TABLE users ALTER COLUMN email DROP NOT NULL"))
 
 
 async def run_handle_migration(conn):
@@ -24,3 +29,11 @@ async def run_handle_migration(conn):
     )
     await conn.execute(text("ALTER TABLE users ALTER COLUMN handle SET NOT NULL"))
     await conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS users_handle_key ON users (handle)"))
+
+
+async def run_all_migrations(conn):
+    await run_handle_migration(conn)
+    try:
+        await run_email_nullable_migration(conn)
+    except Exception:
+        pass  # колонка уже nullable или БД без email

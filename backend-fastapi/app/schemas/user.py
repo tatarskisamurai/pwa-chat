@@ -1,18 +1,16 @@
 from datetime import datetime
 from uuid import UUID
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 
 
 class UserBase(BaseModel):
     username: str
     handle: str
-    email: EmailStr
+    email: str | None = None
 
 
 class UserCreate(BaseModel):
-    username: str
-    handle: str  # уникальный ID (латиница, цифры, _), без @
-    email: EmailStr
+    username: str  # ник — по нему же вход и поиск (нормализуется в handle)
     password: str
 
 
@@ -40,5 +38,5 @@ class Token(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    username: str  # ник (логин)
     password: str

@@ -15,19 +15,16 @@ def _normalize_handle(handle: str) -> str:
 
 @router.post("/register", response_model=Token)
 async def register(data: UserCreate, db: AsyncSession = Depends(get_db)):
-    r = await db.execute(select(User).where(User.email == data.email))
-    if r.scalar_one_or_none():
-        raise HTTPException(status_code=400, detail="Email already registered")
-    handle = _normalize_handle(data.handle)
+    handle = _normalize_handle(data.username)
     if not handle or len(handle) < 2:
-        raise HTTPException(status_code=400, detail="ID должен быть от 2 символов (латиница, цифры, _)")
+        raise HTTPException(status_code=400, detail="Ник от 2 символов (латиница, цифры, _)")
     r = await db.execute(select(User).where(User.handle == handle))
     if r.scalar_one_or_none():
-        raise HTTPException(status_code=400, detail="Этот ID уже занят")
+        raise HTTPException(status_code=400, detail="Этот ник уже занят")
     user = User(
-        username=data.username,
+        username=data.username.strip(),
         handle=handle,
-        email=data.email,
+        email=None,
         password_hash=get_password_hash(data.password),
     )
     db.add(user)
@@ -42,10 +39,13 @@ async def register(data: UserCreate, db: AsyncSession = Depends(get_db)):
 
 @router.post("/login", response_model=Token)
 async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
-    r = await db.execute(select(User).where(User.email == data.email))
+    handle = _normalize_handle(data.username)
+    if not handle:
+        raise HTTPException(status_code=401, detail="Неверный ник или пароль")
+    r = await db.execute(select(User).where(User.handle == handle))
     user = r.scalar_one_or_none()
     if not user or not verify_password(data.password, user.password_hash):
-        raise HTTPException(status_code=401, detail="Invalid email or password")
+        raise HTTPException(status_code=401, detail="Неверный ник или пароль")
     token = create_access_token(str(user.id), user.username)
     return Token(
         access_token=token,

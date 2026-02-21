@@ -61,7 +61,7 @@ export function ChatList({ selectedChatId, onSelectChat }: ChatListProps) {
         </div>
         <input
           type="text"
-          placeholder="Найти по @id пользователя"
+          placeholder="Поиск по нику"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="w-full rounded-xl border-0 bg-white/90 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-white/50"
@@ -81,7 +81,7 @@ export function ChatList({ selectedChatId, onSelectChat }: ChatListProps) {
                   : 'Проверьте авторизацию и повторите попытку.'}
               </p>
             ) : !searchUsers?.length ? (
-              <p className="p-4 text-center text-sm text-gray-500">По такому запросу никого не нашли. Попробуйте другой @id.</p>
+              <p className="p-4 text-center text-sm text-gray-500">По такому запросу никого не нашли. Попробуйте другой ник.</p>
             ) : (
               <ul className="p-2">
                 {searchUsers.map((u) => (
@@ -109,7 +109,7 @@ export function ChatList({ selectedChatId, onSelectChat }: ChatListProps) {
             {chatsLoading ? (
               <Loader />
             ) : !chats?.length ? (
-              <p className="p-6 text-center text-sm text-gray-500">Чатов пока нет. Введите в поиске @id человека — например @ivan — и нажмите на него, чтобы начать диалог.</p>
+              <p className="p-6 text-center text-sm text-gray-500">Чатов пока нет. Введите в поиске ник человека и нажмите на него, чтобы начать диалог.</p>
             ) : (
               <ul className="p-2">
                 {chats.map((chat: Chat) => (

@@ -2,12 +2,10 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '@/contexts/AuthContext';
-import { isValidEmail, isValidPassword, isValidUsername, isValidHandle } from '@/utils/validators';
+import { isValidPassword, isValidUsername } from '@/utils/validators';
 
 interface FormData {
   username: string;
-  handle: string;
-  email: string;
   password: string;
 }
 
@@ -19,7 +17,7 @@ export function Register() {
   const onSubmit = async (data: FormData) => {
     setError('');
     try {
-      await registerUser(data.username, data.handle, data.email, data.password);
+      await registerUser(data.username, data.password);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Ошибка регистрации');
     }
@@ -33,38 +31,14 @@ export function Register() {
         <div>
           <input
             type="text"
-            placeholder="Как к вам обращаться"
+            placeholder="Ник"
             className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-gray-900 placeholder-gray-500 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/30"
             {...register('username', {
-              required: 'Введите имя',
-              validate: (v) => isValidUsername(v) || 'Введите имя',
+              required: 'Введите ник',
+              validate: (v) => isValidUsername(v) || 'Введите ник',
             })}
           />
           {errors.username && <p className="mt-1 text-sm text-red-400">{errors.username.message}</p>}
-        </div>
-        <div>
-          <input
-            type="text"
-            placeholder="@id — по нему вас найдут в поиске"
-            className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-gray-900 placeholder-gray-500 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/30"
-            {...register('handle', {
-              required: 'Введите ID',
-              validate: (v) => isValidHandle(v) || 'Латиница, цифры, _, от 2 символов (без @)',
-            })}
-          />
-          {errors.handle && <p className="mt-1 text-sm text-red-400">{errors.handle.message}</p>}
-        </div>
-        <div>
-          <input
-            type="email"
-            placeholder="Email"
-            className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-gray-900 placeholder-gray-500 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/30"
-            {...register('email', {
-              required: 'Введите email',
-              validate: (v) => isValidEmail(v) || 'Некорректный email',
-            })}
-          />
-          {errors.email && <p className="mt-1 text-sm text-red-400">{errors.email.message}</p>}
         </div>
         <div>
           <input

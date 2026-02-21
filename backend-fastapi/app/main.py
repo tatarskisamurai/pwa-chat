@@ -9,7 +9,7 @@ try:
     from app.api.ws import get_router as get_ws_router
     from app.database import engine
     from app.models import Base
-    from app.migrate_handle import run_handle_migration
+    from app.migrate_handle import run_all_migrations
 except Exception as e:
     print(f"App import failed: {type(e).__name__}: {e}", file=sys.stderr)
     raise
@@ -19,7 +19,7 @@ except Exception as e:
 async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-        await run_handle_migration(conn)
+        await run_all_migrations(conn)
     yield
     await engine.dispose()
 

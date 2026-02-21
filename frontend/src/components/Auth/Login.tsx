@@ -2,10 +2,9 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '@/contexts/AuthContext';
-import { isValidEmail } from '@/utils/validators';
 
 interface FormData {
-  email: string;
+  username: string;
   password: string;
 }
 
@@ -17,7 +16,7 @@ export function Login() {
   const onSubmit = async (data: FormData) => {
     setError('');
     try {
-      await login(data.email, data.password);
+      await login(data.username, data.password);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Ошибка входа');
     }
@@ -30,15 +29,12 @@ export function Login() {
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
           <input
-            type="email"
-            placeholder="Email"
+            type="text"
+            placeholder="Ник"
             className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-gray-900 placeholder-gray-500 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/30"
-            {...register('email', {
-              required: 'Введите email',
-              validate: (v) => isValidEmail(v) || 'Некорректный email',
-            })}
+            {...register('username', { required: 'Введите ник' })}
           />
-          {errors.email && <p className="mt-1 text-sm text-red-400">{errors.email.message}</p>}
+          {errors.username && <p className="mt-1 text-sm text-red-400">{errors.username.message}</p>}
         </div>
         <div>
           <input

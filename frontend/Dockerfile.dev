@@ -3,7 +3,8 @@ WORKDIR /app
 # Меньше зависаний: вывод прогресса, таймауты, без интерактива
 ENV NPM_CONFIG_LOGLEVEL=info NPM_CONFIG_FETCH_TIMEOUT=120000 CI=1
 COPY package*.json ./
-RUN npm install --no-audit --no-fund
+RUN --mount=type=cache,target=/root/.npm \
+    npm install --no-audit --no-fund
 COPY . .
 EXPOSE 5173
 CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
