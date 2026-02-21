@@ -16,7 +16,7 @@ function AuthPage({ children }: { children: React.ReactNode }) {
   if (loading) return <Loader />;
   if (user) return <Navigate to="/" replace />;
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-900 p-4">
+    <div className="flex min-h-[100dvh] items-center justify-center bg-gray-100 p-4 py-6">
       {children}
     </div>
   );
@@ -32,11 +32,22 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 function ChatLayout() {
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   return (
-    <div className="flex h-screen bg-slate-900">
-      <div className="w-80 shrink-0">
+    <div className="flex h-[100dvh] max-h-screen w-full overflow-hidden bg-gray-100 md:h-screen">
+      {/* На мобилке: список на весь экран, при выборе чата — только чат с кнопкой «Назад» */}
+      <div
+        className={`h-full w-full flex-col md:w-80 md:shrink-0 ${
+          selectedChatId ? 'hidden md:flex' : 'flex'
+        }`}
+      >
         <ChatList selectedChatId={selectedChatId} onSelectChat={setSelectedChatId} />
       </div>
-      <ChatWindow chatId={selectedChatId} />
+      <div
+        className={`h-full min-w-0 flex-1 flex flex-col ${
+          !selectedChatId ? 'hidden md:flex' : 'flex'
+        }`}
+      >
+        <ChatWindow chatId={selectedChatId} onBack={() => setSelectedChatId(null)} />
+      </div>
     </div>
   );
 }

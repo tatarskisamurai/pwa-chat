@@ -24,14 +24,15 @@ export function Login() {
   };
 
   return (
-    <div className="w-full max-w-sm rounded-2xl bg-slate-800/50 p-6 shadow-xl">
-      <h2 className="mb-4 text-xl font-semibold text-white">Вход</h2>
+    <div className="w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-6 shadow-lg sm:p-8">
+      <h2 className="mb-1 text-xl font-semibold text-gray-800">Вход</h2>
+      <p className="mb-6 text-sm text-gray-500">Войдите в Друн чат</p>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
           <input
             type="email"
             placeholder="Email"
-            className="w-full rounded-lg border border-slate-600 bg-slate-700/50 px-4 py-2 text-white placeholder-slate-400 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+            className="w-full rounded-xl border border-gray-300 bg-gray-50 px-4 py-2.5 text-gray-900 placeholder-gray-500 focus:border-green-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-green-500/30"
             {...register('email', {
               required: 'Введите email',
               validate: (v) => isValidEmail(v) || 'Некорректный email',
@@ -43,7 +44,7 @@ export function Login() {
           <input
             type="password"
             placeholder="Пароль"
-            className="w-full rounded-lg border border-slate-600 bg-slate-700/50 px-4 py-2 text-white placeholder-slate-400 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+            className="w-full rounded-xl border border-gray-300 bg-gray-50 px-4 py-2.5 text-gray-900 placeholder-gray-500 focus:border-green-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-green-500/30"
             {...register('password', { required: 'Введите пароль' })}
           />
           {errors.password && <p className="mt-1 text-sm text-red-400">{errors.password.message}</p>}
@@ -51,13 +52,13 @@ export function Login() {
         {error && <p className="text-sm text-red-400">{error}</p>}
         <button
           type="submit"
-          className="w-full rounded-lg bg-sky-600 py-2 font-medium text-white transition hover:bg-sky-500"
+          className="w-full rounded-xl bg-green-600 py-2.5 font-medium text-white shadow-sm transition hover:bg-green-700"
         >
           Войти
         </button>
-        <p className="mt-3 text-center text-sm text-slate-400">
+        <p className="mt-3 text-center text-sm text-gray-600">
           Нет аккаунта?{' '}
-          <Link to="/register" className="text-sky-400 hover:underline">Регистрация</Link>
+          <Link to="/register" className="font-medium text-green-600 hover:underline">Регистрация</Link>
         </p>
       </form>
     </div>

@@ -1,18 +1,1 @@
-{
-  "name": "Мессенджер",
-  "short_name": "Чат",
-  "description": "PWA мессенджер с личными и групповыми чатами",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#0f172a",
-  "orientation": "portrait-primary",
-  "icons": [
-    {
-      "src": "/favicon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
-    }
-  ]
-}
+{"name":"Друн чат","short_name":"Друн чат","description":"PWA мессенджер с личными и групповыми чатами","start_url":"/","display":"standalone","background_color":"#ffffff","theme_color":"#15803d","orientation":"portrait-primary","icons":[{"src":"/favicon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}

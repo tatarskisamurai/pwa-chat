@@ -21,7 +21,7 @@ export function Avatar({ src, alt, size = 'md', className = '' }: AvatarProps) {
   const initial = alt.slice(0, 1).toUpperCase();
   return (
     <div
-      className={`flex items-center justify-center rounded-full bg-slate-600 text-white font-medium ${s} ${className}`}
+      className={`flex items-center justify-center rounded-full bg-gray-400 text-white font-medium ${s} ${className}`}
     >
       {initial}
     </div>
