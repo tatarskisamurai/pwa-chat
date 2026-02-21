@@ -1,26 +1,36 @@
-import { CHANNELS, publishMessage, subscribeToChannel } from '../../redis/pubsub.js';
-
-export function registerMessageHandler(io) {
-  subscribeToChannel(CHANNELS.MESSAGE, (data) => {
-    const { chatId, message } = data;
-    io.to(`chat:${chatId}`).emit('message:new', message);
-  });
-}
+const API_URL = process.env.FASTAPI_URL || 'http://localhost:8000';
 
 export function createMessageHandlers(socket, io) {
-  socket.on('message:send', async (payload) => {
-    const { chatId, content, type = 'text', tempId } = payload;
-    if (!chatId || !content) return;
-    await publishMessage(CHANNELS.MESSAGE, {
-      chatId,
-      message: {
-        tempId,
-        chatId,
-        content,
-        type,
-        userId: socket.userId,
-        createdAt: new Date().toISOString(),
-      },
-    });
+  socket.on('send_message', async (payload) => {
+    const { chatId, content, type = 'text' } = payload || {};
+    if (!chatId || content == null || content === '') return;
+
+    const token = socket.token;
+    if (!token) return;
+
+    socket.join(`chat:${chatId}`);
+
+    try {
+      const res = await fetch(`${API_URL}/api/messages/chat/${chatId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ content: String(content).trim(), type }),
+      });
+
+      if (!res.ok) {
+        const err = await res.text();
+        socket.emit('message_error', { chatId, error: err || res.statusText });
+        return;
+      }
+
+      const message = await res.json();
+      io.to(`chat:${chatId}`).emit('new_message', message);
+    } catch (err) {
+      console.error('send_message FastAPI error:', err);
+      socket.emit('message_error', { chatId, error: err.message || 'Request failed' });
+    }
   });
 }

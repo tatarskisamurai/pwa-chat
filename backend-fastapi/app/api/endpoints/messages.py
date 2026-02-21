@@ -7,6 +7,7 @@ from app.database import get_db
 from app.models import User, Chat, ChatMember, Message, Attachment
 from app.schemas.message import MessageCreate, MessageResponse, AttachmentResponse
 from app.api.deps import get_current_user
+from app.redis_pub import publish_new_message
 
 router = APIRouter(prefix="/messages", tags=["messages"])
 
@@ -65,7 +66,21 @@ async def create_message(
     db.add(msg)
     await db.commit()
     await db.refresh(msg)
-    return MessageResponse(**_message_to_response(msg))
+    resp = _message_to_response(msg)
+    payload = {
+        "id": str(msg.id),
+        "chat_id": str(msg.chat_id),
+        "user_id": str(msg.user_id),
+        "content": msg.content,
+        "type": msg.type,
+        "created_at": msg.created_at.isoformat(),
+        "attachments": [],
+    }
+    try:
+        await publish_new_message(chat_id, payload)
+    except Exception:
+        pass
+    return MessageResponse(**resp)
 
 
 @router.get("/search", response_model=list[MessageResponse])

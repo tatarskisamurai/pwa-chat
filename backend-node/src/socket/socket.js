@@ -1,6 +1,6 @@
 import { Server } from 'socket.io';
 import jwt from 'jsonwebtoken';
-import { registerMessageHandler, createMessageHandlers } from './handlers/messageHandler.js';
+import { createMessageHandlers } from './handlers/messageHandler.js';
 import { registerTypingHandler, createTypingHandlers } from './handlers/typingHandler.js';
 import { registerPresenceHandler, createPresenceHandlers } from './handlers/presenceHandler.js';
 
@@ -15,6 +15,7 @@ function authMiddleware(socket, next) {
     const decoded = jwt.verify(token, JWT_SECRET);
     socket.userId = decoded.sub || decoded.user_id;
     socket.username = decoded.username;
+    socket.token = token;
     next();
   } catch (err) {
     next(new Error('Invalid token'));
@@ -32,17 +33,15 @@ export function initSocket(httpServer) {
 
   io.use(authMiddleware);
 
-  registerMessageHandler(io);
   registerTypingHandler(io);
   registerPresenceHandler(io);
 
   io.on('connection', (socket) => {
-    socket.on('chat:join', (chatIds) => {
-      const ids = Array.isArray(chatIds) ? chatIds : [chatIds];
-      ids.forEach((id) => socket.join(`chat:${id}`));
+    socket.on('join_chat', (chatId) => {
+      if (chatId) socket.join(`chat:${chatId}`);
     });
-    socket.on('chat:leave', (chatId) => {
-      socket.leave(`chat:${chatId}`);
+    socket.on('leave_chat', (chatId) => {
+      if (chatId) socket.leave(`chat:${chatId}`);
     });
 
     createMessageHandlers(socket, io);

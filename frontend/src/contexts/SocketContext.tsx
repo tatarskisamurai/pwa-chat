@@ -24,27 +24,40 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       setConnected(false);
       return;
     }
-    const s = connectSocket();
+    let s: ReturnType<typeof connectSocket>;
+    try {
+      s = connectSocket(token);
+    } catch (e) {
+      if (import.meta.env.DEV) console.error('[Socket] connectSocket failed:', e);
+      setSocket(null);
+      setConnected(false);
+      return;
+    }
     setSocket(s);
     const onConnect = () => setConnected(true);
     const onDisconnect = () => setConnected(false);
+    const onError = (err: Error) => {
+      if (import.meta.env.DEV) console.error('[Socket] connect_error:', err.message);
+    };
     s.on('connect', onConnect);
     s.on('disconnect', onDisconnect);
+    s.on('connect_error', onError);
     if (s.connected) setConnected(true);
     return () => {
       s.off('connect', onConnect);
       s.off('disconnect', onDisconnect);
+      s.off('connect_error', onError);
     };
   }, [token]);
 
   const joinChat = useCallback((chatId: string) => {
     const s = getSocket();
-    s?.emit('chat:join', chatId);
+    s?.emit('join_chat', chatId);
   }, []);
 
   const leaveChat = useCallback((chatId: string) => {
     const s = getSocket();
-    s?.emit('chat:leave', chatId);
+    s?.emit('leave_chat', chatId);
   }, []);
 
   const value: SocketContextValue = { socket, connected, joinChat, leaveChat };

@@ -14,7 +14,17 @@ export function MessageInput({ chatId, onSend, disabled }: MessageInputProps) {
   const typingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    const s = getSocket();
     joinChat(chatId);
+    if (s) {
+      const onConnect = () => joinChat(chatId);
+      s.on('connect', onConnect);
+      if (s.connected) joinChat(chatId);
+      return () => {
+        s.off('connect', onConnect);
+        leaveChat(chatId);
+      };
+    }
     return () => leaveChat(chatId);
   }, [chatId, joinChat, leaveChat]);
 

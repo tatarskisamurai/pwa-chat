@@ -27,11 +27,15 @@ export function useChat(chatId: string | null) {
   });
 }
 
+/** Редкий refetch только как подстраховка при проблемах с сокетом */
+const MESSAGES_REFETCH_MS = 10000;
+
 export function useMessages(chatId: string | null) {
   return useQuery({
     queryKey: ['messages', chatId],
     queryFn: () => api.get<Message[]>(`/api/messages/chat/${chatId}`),
     enabled: !!chatId,
+    refetchInterval: chatId ? MESSAGES_REFETCH_MS : false,
   });
 }
 
@@ -44,13 +48,66 @@ export function useCreateChat() {
   });
 }
 
+export function normalizeMessage(m: Message): Message {
+  return {
+    ...m,
+    id: String(m.id),
+    chat_id: String(m.chat_id),
+    user_id: String(m.user_id),
+    created_at:
+      typeof m.created_at === 'string'
+        ? m.created_at
+        : (m as { created_at?: { toISOString?: () => string } }).created_at?.toISOString?.() ??
+          new Date().toISOString(),
+  };
+}
+
+/** Список сообщений всегда по времени: старые сверху, новые снизу */
+export function sortMessagesByTime(messages: Message[]): Message[] {
+  return [...messages].sort(
+    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+  );
+}
+
+export const TEMP_ID_PREFIX = 'temp-';
+
+/** Добавляет реальное сообщение в кэш: подменяет первый temp (если это наше) или добавляет в конец */
+export function applyRealMessage(
+  old: Message[] | undefined,
+  real: Message,
+  currentUserId: string
+): Message[] {
+  const msg = normalizeMessage(real);
+  const list = old ?? [];
+  const isOwn = String(msg.user_id) === String(currentUserId);
+  if (isOwn) {
+    const idx = list.findIndex((m) => String(m.id).startsWith(TEMP_ID_PREFIX));
+    if (idx >= 0) {
+      const next = [...list];
+      next.splice(idx, 1, msg);
+      return sortMessagesByTime(next);
+    }
+  }
+  if (list.some((m) => String(m.id) === String(msg.id))) return list;
+  return sortMessagesByTime([...list, msg]);
+}
+
+export type SendMessageVars = { content: string; type?: string; currentUserId?: string };
+
 export function useSendMessage(chatId: string) {
   const qc = useQueryClient();
+  const queryKey = ['messages', chatId] as const;
+
   return useMutation({
-    mutationFn: (body: { content: string; type?: string }) =>
-      api.post<Message>(`/api/messages/chat/${chatId}`, body),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['messages', chatId] });
+    mutationFn: (body: SendMessageVars) => {
+      const { currentUserId: _u, ...rest } = body;
+      return api.post<Message>(`/api/messages/chat/${chatId}`, rest);
+    },
+    onSuccess: (newMessage, variables) => {
+      const uid = variables.currentUserId ?? '';
+      qc.setQueryData<Message[]>(queryKey, (old) =>
+        applyRealMessage(old, newMessage, uid)
+      );
       qc.invalidateQueries({ queryKey: ['chats'] });
     },
   });

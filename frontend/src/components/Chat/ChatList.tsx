@@ -116,10 +116,10 @@ export function ChatList({ selectedChatId, onSelectChat }: ChatListProps) {
                         selectedChatId === chat.id ? 'bg-sky-600/20 text-white' : 'text-slate-200 hover:bg-slate-700/50'
                       }`}
                     >
-                      <Avatar alt={chat.name || chat.id} size="md" />
+                      <Avatar alt={chat.display_name || chat.name || chat.id} size="md" />
                       <div className="min-w-0 flex-1">
                         <p className="truncate font-medium">
-                          {chat.name || `Чат ${chat.id.slice(0, 8)}`}
+                          {chat.display_name || chat.name || `Чат ${chat.id.slice(0, 8)}`}
                         </p>
                         {chat.last_message && (
                           <p className="truncate text-sm text-slate-400">

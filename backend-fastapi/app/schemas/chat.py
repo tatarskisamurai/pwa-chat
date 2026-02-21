@@ -29,6 +29,7 @@ class ChatResponse(BaseModel):
     id: UUID
     type: str
     name: str | None
+    display_name: str | None = None  # для личного чата — имя собеседника
     created_at: datetime
     members_count: int | None = None
     last_message: dict | None = None

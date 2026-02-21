@@ -2,6 +2,7 @@ export interface Chat {
   id: string;
   type: 'private' | 'group';
   name: string | null;
+  display_name?: string | null;  // для личного чата — имя собеседника
   created_at: string;
   members_count?: number;
   last_message?: {
