@@ -42,8 +42,8 @@ services:
       - ../frontend:/app
       - /app/node_modules
     environment:
-      VITE_API_URL: http://localhost:8000
-      # В контейнере localhost = сам контейнер; проксируем в бэкенд по имени сервиса
+      # Пустой — запросы идут на тот же origin (например 185.70.184.117:5173), Vite проксирует /api в бэкенд. Иначе браузер лезет на свой localhost → CORS.
+      VITE_API_URL: ""
       VITE_PROXY_TARGET: http://backend-fastapi:8000
 
   nginx:
