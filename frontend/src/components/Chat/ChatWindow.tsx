@@ -16,7 +16,7 @@ import { MessageBubble } from './MessageBubble';
 import { MessageInput } from './MessageInput';
 import { Loader } from '@/components/Common/Loader';
 import { Avatar } from '@/components/Common/Avatar';
-import type { Message } from '@/types/chat';
+import type { Chat, Message } from '@/types/chat';
 
 interface ChatWindowProps {
   chatId: string | null;
@@ -79,17 +79,31 @@ export function ChatWindow({ chatId, onBack }: ChatWindowProps) {
 
   const handleSend = async (content: string) => {
     const queryKey = ['messages', chatId] as const;
+    const now = new Date().toISOString();
     const optimistic: Message = {
       id: `${TEMP_ID_PREFIX}${Date.now()}`,
       chat_id: chatId,
       user_id: user?.id ?? '',
       content,
       type: 'text',
-      created_at: new Date().toISOString(),
+      created_at: now,
     };
     qc.setQueryData<Message[]>(queryKey, (old) =>
       sortMessagesByTime([...(old ?? []), optimistic])
     );
+    // Сразу обновить превью последнего сообщения в списке чатов
+    qc.setQueryData<Chat[]>(['chats'], (old) => {
+      if (!old) return old;
+      const updated = old.map((c) =>
+        c.id === chatId
+          ? { ...c, last_message: { id: optimistic.id, content, created_at: now } }
+          : c
+      );
+      const idx = updated.findIndex((c) => c.id === chatId);
+      if (idx <= 0) return updated;
+      const [item] = updated.splice(idx, 1);
+      return [item, ...updated];
+    });
 
     if (connected) {
       getSocket()?.emit('send_message', { chat_id: chatId, content });

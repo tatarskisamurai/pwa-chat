@@ -78,6 +78,9 @@ async def create_message(
     }
     try:
         await ws_manager.broadcast_to_chat(str(chat_id), {"type": "new_message", "message": payload})
+        members = await db.execute(select(ChatMember.user_id).where(ChatMember.chat_id == chat_id))
+        for (member_uid,) in members.all():
+            await ws_manager.broadcast_to_user(str(member_uid), {"type": "chats_updated"})
     except Exception:
         pass
     return MessageResponse(**resp)

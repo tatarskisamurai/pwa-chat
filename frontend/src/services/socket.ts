@@ -100,6 +100,8 @@ function connectSocket(tokenOrUndefined?: string | null): SocketLike {
       const type = data?.type;
       if (type === 'new_message' && data.message != null) {
         emitEvent('new_message', data.message);
+      } else if (type === 'chats_updated') {
+        emitEvent('chats_updated', {});
       }
     } catch {}
   };

@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
-import { SocketProvider } from '@/contexts/SocketContext';
+import { SocketProvider, useSocket } from '@/contexts/SocketContext';
 import { Login } from '@/components/Auth/Login';
 import { Register } from '@/components/Auth/Register';
 import { ChatList } from '@/components/Chat/ChatList';
@@ -31,6 +31,16 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
 function ChatLayout() {
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
+  const qc = useQueryClient();
+  const { socket } = useSocket();
+
+  useEffect(() => {
+    if (!socket) return;
+    const handler = () => qc.invalidateQueries({ queryKey: ['chats'] });
+    socket.on('chats_updated', handler);
+    return () => socket.off('chats_updated', handler);
+  }, [socket, qc]);
+
   return (
     <div className="flex h-[100dvh] max-h-screen w-full overflow-hidden bg-gray-200 md:h-screen">
       {/* На мобилке: список на весь экран, при выборе чата — только чат с кнопкой «Назад» */}

@@ -93,6 +93,7 @@ async def create_chat(
             db.add(ChatMember(chat_id=chat.id, user_id=uid, role="member"))
     await db.commit()
     await db.refresh(chat)
+    # Не шлём chats_updated получателю — чат появится у него только после первого сообщения
     return ChatResponse(**(await _chat_response(chat, db, current_user)))
 
 

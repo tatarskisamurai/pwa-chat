@@ -50,6 +50,8 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
         await websocket.close(code=4001)
         return
 
+    ws_manager.join_user(websocket, str(user.id))
+
     try:
         while True:
             raw = await websocket.receive_text()
@@ -94,7 +96,12 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
                     await db.commit()
                     await db.refresh(msg)
                     payload = _message_to_dict(msg)
-                await ws_manager.broadcast_to_chat(str(chat_id), {"type": "new_message", "message": payload})
+                    await ws_manager.broadcast_to_chat(str(chat_id), {"type": "new_message", "message": payload})
+                    members = await db.execute(
+                        select(ChatMember.user_id).where(ChatMember.chat_id == cid)
+                    )
+                    for (member_uid,) in members.all():
+                        await ws_manager.broadcast_to_user(str(member_uid), {"type": "chats_updated"})
     except WebSocketDisconnect:
         pass
     finally:
