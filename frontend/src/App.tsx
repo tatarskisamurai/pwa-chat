@@ -32,7 +32,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 function ChatLayout() {
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   return (
-    <div className="flex h-[100dvh] max-h-screen w-full overflow-hidden bg-gray-100 md:h-screen">
+    <div className="flex h-[100dvh] max-h-screen w-full overflow-hidden bg-gray-200 md:h-screen">
       {/* На мобилке: список на весь экран, при выборе чата — только чат с кнопкой «Назад» */}
       <div
         className={`h-full w-full flex-col md:w-80 md:shrink-0 ${

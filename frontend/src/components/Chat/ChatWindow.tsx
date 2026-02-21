@@ -63,9 +63,9 @@ export function ChatWindow({ chatId, onBack }: ChatWindowProps) {
 
   if (!chatId) {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center bg-gray-100 px-6 text-center">
-        <div className="mb-4 rounded-full bg-gray-200 p-5">
-          <svg className="h-12 w-12 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <div className="flex flex-1 flex-col items-center justify-center bg-gray-300 px-6 text-center">
+        <div className="mb-4 rounded-full bg-gray-400/80 p-5">
+          <svg className="h-12 w-12 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 9.75a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
           </svg>
         </div>
@@ -102,14 +102,14 @@ export function ChatWindow({ chatId, onBack }: ChatWindowProps) {
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-gray-100">
-      {/* Шапка чата — липкая, не уезжает при прокрутке */}
-      <header className="sticky top-0 z-10 flex shrink-0 items-center gap-2 border-b border-gray-200 bg-white px-3 py-2 pt-[calc(0.5rem+env(safe-area-inset-top))] shadow-sm md:gap-3 md:px-4 md:py-3 md:pt-3">
+    <div className="flex min-h-0 flex-1 flex-col bg-gray-300">
+      {/* Зелёная верхушка — липкая */}
+      <header className="sticky top-0 z-10 flex shrink-0 items-center gap-2 bg-green-600 px-3 py-2 pt-[calc(0.5rem+env(safe-area-inset-top))] md:gap-3 md:px-4 md:py-3 md:pt-3">
         {onBack ? (
           <button
             type="button"
             onClick={onBack}
-            className="flex shrink-0 touch-manipulation items-center gap-1 rounded-lg py-2 pr-2 text-gray-600 hover:bg-gray-100 md:hidden"
+            className="flex shrink-0 touch-manipulation items-center gap-1 rounded-lg py-2 pr-2 text-white hover:bg-white/15 md:hidden"
             aria-label="Назад к чатам"
           >
             <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -120,11 +120,11 @@ export function ChatWindow({ chatId, onBack }: ChatWindowProps) {
         ) : null}
         <Avatar alt={chatTitle ?? ''} size="md" />
         <div className="min-w-0 flex-1">
-          <h1 className="truncate font-semibold text-gray-800">{chatTitle}</h1>
-          <p className="text-xs text-gray-500">в сети</p>
+          <h1 className="truncate font-semibold text-white">{chatTitle}</h1>
+          <p className="text-xs text-white/85">в сети</p>
         </div>
       </header>
-      <div className="min-h-0 flex-1 overflow-y-auto p-3 space-y-3 md:p-4">
+      <div className="min-h-0 flex-1 overflow-y-auto bg-gray-300 p-3 space-y-3 md:p-4">
         {sortedMessages.map((msg) => (
           <MessageBubble
             key={msg.id}

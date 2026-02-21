@@ -26,7 +26,7 @@ export function Register() {
   };
 
   return (
-    <div className="w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-6 shadow-lg sm:p-8">
+    <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-lg sm:p-8">
       <h2 className="mb-1 text-xl font-semibold text-gray-800">Регистрация</h2>
       <p className="mb-6 text-sm text-gray-500">Создайте аккаунт в Друн чат</p>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -34,7 +34,7 @@ export function Register() {
           <input
             type="text"
             placeholder="Как к вам обращаться"
-            className="w-full rounded-xl border border-gray-300 bg-gray-50 px-4 py-2.5 text-gray-900 placeholder-gray-500 focus:border-green-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-green-500/30"
+            className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-gray-900 placeholder-gray-500 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/30"
             {...register('username', {
               required: 'Введите имя',
               validate: (v) => isValidUsername(v) || 'Введите имя',
@@ -46,7 +46,7 @@ export function Register() {
           <input
             type="text"
             placeholder="@id — по нему вас найдут в поиске"
-            className="w-full rounded-xl border border-gray-300 bg-gray-50 px-4 py-2.5 text-gray-900 placeholder-gray-500 focus:border-green-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-green-500/30"
+            className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-gray-900 placeholder-gray-500 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/30"
             {...register('handle', {
               required: 'Введите ID',
               validate: (v) => isValidHandle(v) || 'Латиница, цифры, _, от 2 символов (без @)',
@@ -58,7 +58,7 @@ export function Register() {
           <input
             type="email"
             placeholder="Email"
-            className="w-full rounded-xl border border-gray-300 bg-gray-50 px-4 py-2.5 text-gray-900 placeholder-gray-500 focus:border-green-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-green-500/30"
+            className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-gray-900 placeholder-gray-500 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/30"
             {...register('email', {
               required: 'Введите email',
               validate: (v) => isValidEmail(v) || 'Некорректный email',
@@ -70,7 +70,7 @@ export function Register() {
           <input
             type="password"
             placeholder="Пароль"
-            className="w-full rounded-xl border border-gray-300 bg-gray-50 px-4 py-2.5 text-gray-900 placeholder-gray-500 focus:border-green-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-green-500/30"
+            className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-gray-900 placeholder-gray-500 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/30"
             {...register('password', {
               required: 'Введите пароль',
               validate: (v) => isValidPassword(v) || 'Минимум 6 символов',

@@ -59,7 +59,7 @@ export function MessageInput({ chatId, onSend, disabled }: MessageInputProps) {
 
   return (
     <div
-        className="flex gap-2 border-t border-gray-200 bg-gray-50 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:pb-3"
+        className="flex gap-2 border-t border-gray-400 bg-gray-200 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:pb-3"
       >
         <textarea
           value={text}
