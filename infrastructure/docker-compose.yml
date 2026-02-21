@@ -43,6 +43,8 @@ services:
       - /app/node_modules
     environment:
       VITE_API_URL: http://localhost:8000
+      # В контейнере localhost = сам контейнер; проксируем в бэкенд по имени сервиса
+      VITE_PROXY_TARGET: http://backend-fastapi:8000
 
   nginx:
     image: nginx:alpine
