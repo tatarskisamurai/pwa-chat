@@ -1,0 +1,54 @@
+# Продакшен: один вход через nginx (статический фронт + прокси API).
+# Порты на хосте настраиваются через .env — удобно, если 80/5432 уже заняты.
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: chat-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-chat}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-chat_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-chat_db}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-chat} -d ${POSTGRES_DB:-chat_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  backend-fastapi:
+    build:
+      context: ../backend-fastapi
+      dockerfile: Dockerfile
+    container_name: chat-fastapi
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-chat}:${POSTGRES_PASSWORD:-chat_secret}@postgres:5432/${POSTGRES_DB:-chat_db}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
+    expose:
+      - "8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+      args:
+        # Пустой или /api — запросы идут на тот же хост, nginx проксирует /api/ в бэкенд
+        VITE_API_URL: ${VITE_API_URL:-}
+    container_name: chat-frontend
+    ports:
+      - "${HTTP_PORT:-8080}:80"
+    depends_on:
+      - backend-fastapi
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
