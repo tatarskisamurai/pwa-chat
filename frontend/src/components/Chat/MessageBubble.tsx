@@ -4,12 +4,17 @@ import type { Message } from '@/types/chat';
 
 const URL_REGEX = /(https?:\/\/[^\s<>]+)/g;
 
+/** Цвет ссылки и зона нажатия: в своих — светлая, в чужих — синяя; на мобилке удобнее тапать. */
+const linkClass = (isOwn: boolean) =>
+  isOwn
+    ? 'underline break-all text-green-100 decoration-green-200 cursor-pointer inline-block py-0.5 min-h-[2.25em]'
+    : 'underline break-all text-blue-600 decoration-blue-400 cursor-pointer inline-block py-0.5 min-h-[2.25em]';
+
 /** Разбивает текст на фрагменты и превращает URL в кликабельные ссылки. */
-function linkify(text: string): (string | React.ReactElement)[] {
+function linkify(text: string, isOwn: boolean): (string | React.ReactElement)[] {
   if (!text) return [];
   const parts = text.split(URL_REGEX);
   return parts.map((part, i) => {
-    // Нечётные индексы — совпадения URL по split(URL_REGEX)
     if (i % 2 === 1) {
       const href = part.replace(/[.,;:)\]}>]+$/, '');
       const trailing = part.slice(href.length);
@@ -19,7 +24,13 @@ function linkify(text: string): (string | React.ReactElement)[] {
             href={href}
             target="_blank"
             rel="noopener noreferrer"
-            className="underline break-all"
+            className={linkClass(isOwn)}
+            style={
+              (isOwn
+                ? { WebkitTapHighlightColor: 'rgba(255,255,255,0.3)' }
+                : { WebkitTapHighlightColor: 'rgba(0,0,0,0.08)' }) as React.CSSProperties
+            }
+            onClick={(e) => e.stopPropagation()}
           >
             {href}
           </a>
@@ -103,7 +114,7 @@ export function MessageBubble({ message, isOwn, showAuthor }: MessageBubbleProps
         {showAuthor && !isOwn && (
           <p className="mb-0.5 text-xs font-medium text-gray-600">{message.user_id}</p>
         )}
-        <p className="whitespace-pre-wrap break-words">{linkify(message.content || '')}</p>
+        <p className="whitespace-pre-wrap break-words">{linkify(message.content || '', isOwn)}</p>
         {message.attachments && message.attachments.length > 0 ? (
           <div className="mt-2 space-y-2">
             {message.attachments.map((a) => {
