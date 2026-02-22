@@ -9,9 +9,9 @@ interface MessageBubbleProps {
 }
 
 /**
- * Скачивает файл в фоне через fetch → blob → object URL → программный клик (без выхода из PWA).
- * Object URL передаётся в registerRevoke для отзыва при размонтировании.
- * Пустые файлы (blob.size === 0) тоже идут через этот путь — fallback в новую вкладку в PWA не используем.
+ * Скачивает файл в фоне (без выхода из PWA).
+ * Непустой файл: fetch → blob → object URL → клик; URL отзывается через registerRevoke при размонтировании.
+ * Пустой файл (blob.size === 0): клик по ссылке на url с download — браузер сам запрашивает и сохраняет (на мобилке с blob для 0 байт часто «скачать снова?» и ошибка).
  */
 async function downloadInBackground(
   url: string,
@@ -21,13 +21,17 @@ async function downloadInBackground(
   const res = await fetch(url, { credentials: 'include' });
   if (!res.ok) throw new Error('Download failed');
   const blob = await res.blob();
-  const objUrl = URL.createObjectURL(blob);
-  registerRevoke(objUrl);
   const a = document.createElement('a');
-  a.href = objUrl;
   a.download = filename || 'file';
   a.style.display = 'none';
   document.body.appendChild(a);
+  if (blob.size === 0) {
+    a.href = url;
+  } else {
+    const objUrl = URL.createObjectURL(blob);
+    registerRevoke(objUrl);
+    a.href = objUrl;
+  }
   a.click();
   document.body.removeChild(a);
 }
@@ -71,7 +75,7 @@ export function MessageBubble({ message, isOwn, showAuthor }: MessageBubbleProps
                 setDownloading(a.id);
                 const register = (objUrl: string) => objectUrlsToRevoke.current.add(objUrl);
                 downloadInBackground(downloadUrl, name, register)
-                  .catch(() => {}) // в PWA новую вкладку не открываем
+                  .catch(() => {})
                   .finally(() => setDownloading(null));
               };
 
@@ -94,16 +98,17 @@ export function MessageBubble({ message, isOwn, showAuthor }: MessageBubbleProps
                   </button>
                 </div>
               ) : (
-                <button
-                  key={a.id}
-                  type="button"
-                  onClick={handleDownload}
-                  disabled={!!downloading}
-                  className="inline-flex items-center gap-1.5 text-sm underline disabled:opacity-50"
-                >
-                  <span>{a.filename || 'Вложение'}</span>
-                  <span className="text-xs opacity-80">{downloading === a.id ? '…' : '↓'}</span>
-                </button>
+                <span key={a.id} className="block">
+                  <button
+                    type="button"
+                    onClick={handleDownload}
+                    disabled={!!downloading}
+                    className="inline-flex items-center gap-1.5 text-sm underline disabled:opacity-50"
+                  >
+                    <span>{a.filename || 'Вложение'}</span>
+                    <span className="text-xs opacity-80">{downloading === a.id ? '…' : '↓'}</span>
+                  </button>
+                </span>
               );
             })}
           </div>
