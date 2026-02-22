@@ -92,7 +92,13 @@ export function applyRealMessage(
   return sortMessagesByTime([...list, msg]);
 }
 
-export type SendMessageVars = { content: string; type?: string; currentUserId?: string };
+export type AttachmentInput = { url: string; type?: string; filename?: string };
+export type SendMessageVars = {
+  content: string;
+  type?: string;
+  attachments?: AttachmentInput[];
+  currentUserId?: string;
+};
 
 export function useSendMessage(chatId: string) {
   const qc = useQueryClient();

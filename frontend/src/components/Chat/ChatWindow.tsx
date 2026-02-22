@@ -77,26 +77,28 @@ export function ChatWindow({ chatId, onBack }: ChatWindowProps) {
 
   if (isLoading) return <Loader />;
 
-  const handleSend = async (content: string) => {
+  const handleSend = async (content: string, attachments?: { url: string; type?: string; filename?: string }[]) => {
     const queryKey = ['messages', chatId] as const;
     const now = new Date().toISOString();
+    const msgType = attachments?.length ? (attachments.some((a) => (a.type || '').startsWith('image/')) ? 'image' : 'file') : 'text';
     const optimistic: Message = {
       id: `${TEMP_ID_PREFIX}${Date.now()}`,
       chat_id: chatId,
       user_id: user?.id ?? '',
-      content,
-      type: 'text',
+      content: content || null,
+      type: msgType,
       created_at: now,
+      attachments: attachments?.map((a, i) => ({ id: `temp-${i}`, url: a.url, type: a.type, filename: a.filename })) ?? [],
     };
     qc.setQueryData<Message[]>(queryKey, (old) =>
       sortMessagesByTime([...(old ?? []), optimistic])
     );
-    // Сразу обновить превью последнего сообщения в списке чатов
+    const previewContent = content || (attachments?.length ? '📎 Вложение' : '');
     qc.setQueryData<Chat[]>(['chats'], (old) => {
       if (!old) return old;
       const updated = old.map((c) =>
         c.id === chatId
-          ? { ...c, last_message: { id: optimistic.id, content, created_at: now } }
+          ? { ...c, last_message: { id: optimistic.id, content: previewContent, created_at: now } }
           : c
       );
       const idx = updated.findIndex((c) => c.id === chatId);
@@ -105,12 +107,15 @@ export function ChatWindow({ chatId, onBack }: ChatWindowProps) {
       return [item, ...updated];
     });
 
-    if (connected) {
+    const useWs = connected && !attachments?.length;
+    if (useWs) {
       getSocket()?.emit('send_message', { chat_id: chatId, content });
       return;
     }
     await sendMessageRest.mutateAsync({
-      content,
+      content: content || undefined,
+      type: msgType,
+      attachments,
       currentUserId: user?.id,
     });
   };

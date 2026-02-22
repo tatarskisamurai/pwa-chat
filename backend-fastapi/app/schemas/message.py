@@ -8,8 +8,14 @@ class MessageBase(BaseModel):
     type: str = "text"
 
 
+class AttachmentCreate(BaseModel):
+    url: str
+    type: str | None = None
+    filename: str | None = None
+
+
 class MessageCreate(MessageBase):
-    pass
+    attachments: list[AttachmentCreate] = []
 
 
 class AttachmentResponse(BaseModel):

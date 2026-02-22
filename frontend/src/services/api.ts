@@ -2,9 +2,10 @@ import { storage } from './storage';
 
 const BASE = import.meta.env.VITE_API_URL || '';
 
-function getHeaders(): HeadersInit {
+function getHeaders(json = true): HeadersInit {
   const token = storage.getToken();
-  const headers: HeadersInit = { 'Content-Type': 'application/json' };
+  const headers: HeadersInit = {};
+  if (json) (headers as Record<string, string>)['Content-Type'] = 'application/json';
   if (token) (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
   return headers;
 }
@@ -35,6 +36,17 @@ export const api = {
       body: body ? JSON.stringify(body) : undefined,
     });
     return handleResponse<T>(res);
+  },
+  /** Загрузка файлов: возвращает { files: [{ url, type, filename }] } */
+  async uploadFiles(files: File[]): Promise<{ files: { url: string; type?: string; filename?: string }[] }> {
+    const form = new FormData();
+    files.forEach((f) => form.append('files', f));
+    const res = await fetch(`${BASE}/api/upload`, {
+      method: 'POST',
+      headers: getHeaders(false),
+      body: form,
+    });
+    return handleResponse(res);
   },
   async patch<T>(path: string, body: unknown): Promise<T> {
     const res = await fetch(`${BASE}${path}`, {

@@ -3,9 +3,11 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 try:
-    from app.api.endpoints import auth, users, chats, messages
+    from app.api.endpoints import auth, users, chats, messages, upload
+    from app.api.endpoints.upload import UPLOADS_DIR
     from app.api.ws import get_router as get_ws_router
     from app.database import engine
     from app.models import Base
@@ -67,7 +69,10 @@ app.include_router(users.router, prefix="/api")  # /list, /me — до роут�
 app.include_router(users.router_with_id, prefix="/api")
 app.include_router(chats.router, prefix="/api")
 app.include_router(messages.router, prefix="/api")
+app.include_router(upload.router, prefix="/api")
 app.include_router(get_ws_router(), prefix="/api")
+UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+app.mount("/api/uploads", StaticFiles(directory=str(UPLOADS_DIR)), name="uploads")
 
 
 @app.get("/health")

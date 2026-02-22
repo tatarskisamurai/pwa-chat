@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from app.database import get_db
 from app.models import User, Chat, ChatMember, Message, Attachment
-from app.schemas.message import MessageCreate, MessageResponse, AttachmentResponse
+from app.schemas.message import MessageCreate, MessageResponse, AttachmentResponse, AttachmentCreate
 from app.api.deps import get_current_user
 from app.ws_manager import ws_manager
 
@@ -57,15 +57,27 @@ async def create_message(
     r = await db.execute(select(ChatMember).where(ChatMember.chat_id == chat_id, ChatMember.user_id == current_user.id))
     if not r.scalar_one_or_none():
         raise HTTPException(status_code=403, detail="Not a member")
+    msg_type = data.type or ("image" if data.attachments else "text")
     msg = Message(
         chat_id=chat_id,
         user_id=current_user.id,
         content=data.content,
-        type=data.type or "text",
+        type=msg_type,
     )
     db.add(msg)
     await db.commit()
     await db.refresh(msg)
+    for att in data.attachments:
+        att_obj = Attachment(
+            message_id=msg.id,
+            url=att.url,
+            type=att.type,
+            filename=att.filename,
+        )
+        db.add(att_obj)
+    await db.commit()
+    result = await db.execute(select(Message).where(Message.id == msg.id).options(selectinload(Message.attachments)))
+    msg = result.scalar_one()
     resp = _message_to_response(msg)
     payload = {
         "id": str(msg.id),
@@ -74,7 +86,7 @@ async def create_message(
         "content": msg.content,
         "type": msg.type,
         "created_at": msg.created_at.isoformat(),
-        "attachments": [],
+        "attachments": [{"id": str(a.id), "url": a.url, "type": a.type, "filename": a.filename} for a in msg.attachments],
     }
     try:
         await ws_manager.broadcast_to_chat(str(chat_id), {"type": "new_message", "message": payload})
