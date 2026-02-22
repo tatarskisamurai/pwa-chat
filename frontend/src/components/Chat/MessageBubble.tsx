@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { formatMessageDate } from '@/utils/dateFormatter';
 import type { Message } from '@/types/chat';
 
@@ -8,30 +8,40 @@ interface MessageBubbleProps {
   showAuthor?: boolean;
 }
 
-/** Скачивает файл в фоне. При ошибке (мобилка, большой документ) открывает ссылку в новой вкладке. */
-async function downloadInBackground(url: string, filename: string): Promise<void> {
-  try {
-    const res = await fetch(url, { credentials: 'include' });
-    if (!res.ok) throw new Error('Download failed');
-    const blob = await res.blob();
-    const objUrl = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = objUrl;
-    a.download = filename || 'file';
-    a.style.display = 'none';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(objUrl);
-  } catch {
-    // На мобилке fetch+blob часто не срабатывает для документов — открываем ссылку, браузер сам предложит сохранить
-    window.open(url, '_blank', 'noopener,noreferrer');
-    throw new Error('fallback');
-  }
+/**
+ * Скачивает файл в фоне через fetch → blob → object URL → программный клик.
+ * Object URL передаётся в registerRevoke: вызывающая сторона обязана вызвать URL.revokeObjectURL при размонтировании,
+ * чтобы не зависеть от размера файла и не хардкодить таймауты.
+ */
+async function downloadInBackground(
+  url: string,
+  filename: string,
+  registerRevoke: (objectUrl: string) => void
+): Promise<void> {
+  const res = await fetch(url, { credentials: 'include' });
+  if (!res.ok) throw new Error('Download failed');
+  const blob = await res.blob();
+  const objUrl = URL.createObjectURL(blob);
+  registerRevoke(objUrl);
+  const a = document.createElement('a');
+  a.href = objUrl;
+  a.download = filename || 'file';
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 }
 
 export function MessageBubble({ message, isOwn, showAuthor }: MessageBubbleProps) {
   const [downloading, setDownloading] = useState<string | null>(null);
+  const objectUrlsToRevoke = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    return () => {
+      objectUrlsToRevoke.current.forEach((url) => URL.revokeObjectURL(url));
+      objectUrlsToRevoke.current.clear();
+    };
+  }, []);
   const wrapperClass = isOwn ? 'flex justify-end' : 'flex justify-start';
   const bubbleClass = isOwn
     ? 'max-w-[85%] rounded-2xl rounded-br-md px-4 py-2.5 bg-green-600 text-white shadow-sm sm:max-w-[80%]'
@@ -59,8 +69,11 @@ export function MessageBubble({ message, isOwn, showAuthor }: MessageBubbleProps
                 e.preventDefault();
                 const name = a.filename || (isImage ? 'image' : 'file');
                 setDownloading(a.id);
-                downloadInBackground(downloadUrl, name)
-                  .catch(() => {}) // при fallback открыли вкладку, просто сбрасываем спиннер
+                const register = (objUrl: string) => objectUrlsToRevoke.current.add(objUrl);
+                downloadInBackground(downloadUrl, name, register)
+                  .catch(() => {
+                    window.open(downloadUrl, '_blank', 'noopener,noreferrer');
+                  })
                   .finally(() => setDownloading(null));
               };
 
