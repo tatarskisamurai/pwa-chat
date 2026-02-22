@@ -37,24 +37,27 @@ export const api = {
     });
     return handleResponse<T>(res);
   },
-  /** Загрузка файлов: возвращает { files: [{ url, type, filename }] } */
+  /** Загрузка файлов: возвращает { files: [{ url, type, filename }] }.
+   * Файлы читаем в Blob перед отправкой — на мобилке FormData с нативным File часто падает. */
   async uploadFiles(files: File[]): Promise<{ files: { url: string; type?: string; filename?: string }[] }> {
     const form = new FormData();
-    files.forEach((f) => form.append('files', f));
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5 * 60 * 1000);
-    try {
-      const res = await fetch(`${BASE}/api/upload`, {
-        method: 'POST',
-        headers: getHeaders(false),
-        body: form,
-        credentials: 'include',
-        signal: controller.signal,
-      });
-      return handleResponse(res);
-    } finally {
-      clearTimeout(timeoutId);
+    const safeName = (name: string) => {
+      const ext = name.includes('.') ? name.slice(name.lastIndexOf('.')) : '';
+      const base = name.slice(0, name.lastIndexOf('.') || name.length).replace(/[^\w\s\-\.]/g, '_').slice(0, 80);
+      return (base || 'file') + (ext || '');
+    };
+    for (const f of files) {
+      const buffer = await f.arrayBuffer();
+      const blob = new Blob([buffer], { type: f.type || 'application/octet-stream' });
+      form.append('files', blob, safeName(f.name || 'file'));
     }
+    const res = await fetch(`${BASE}/api/upload`, {
+      method: 'POST',
+      headers: getHeaders(false),
+      body: form,
+      credentials: 'include',
+    });
+    return handleResponse(res);
   },
   async patch<T>(path: string, body: unknown): Promise<T> {
     const res = await fetch(`${BASE}${path}`, {
