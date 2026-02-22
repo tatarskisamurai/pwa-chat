@@ -45,6 +45,7 @@ export const api = {
       method: 'POST',
       headers: getHeaders(false),
       body: form,
+      credentials: 'include',
     });
     return handleResponse(res);
   },

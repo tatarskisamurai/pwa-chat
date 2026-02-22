@@ -12,7 +12,6 @@ router = APIRouter(prefix="/upload", tags=["upload"])
 
 # Каталог для файлов (рядом с app/); в Docker лучше монтировать volume
 UPLOADS_DIR = Path(__file__).resolve().parent.parent.parent.parent / "uploads"
-MAX_FILE_SIZE = 20 * 1024 * 1024  # 20 MB
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/gif", "image/webp"}
 ALLOWED_EXT = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".pdf", ".txt", ".doc", ".docx"}
 
@@ -60,8 +59,6 @@ async def upload_files(
         content = await f.read()
         if len(content) == 0:
             raise HTTPException(status_code=400, detail="Вложение не поддерживается")
-        if len(content) > MAX_FILE_SIZE:
-            raise HTTPException(status_code=400, detail=f"Файл {f.filename} больше 20 МБ")
         safe_name = _safe_filename(f.filename)
         path = UPLOADS_DIR / safe_name
         path.write_bytes(content)

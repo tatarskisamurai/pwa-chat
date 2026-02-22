@@ -58,7 +58,8 @@ export function MessageInput({ chatId, onSend, disabled }: MessageInputProps) {
       }
       await onSend(trimmed, attachments);
     } catch (e) {
-      setError(e instanceof Error ? e.message : UNSUPPORTED_MSG);
+      const msg = e instanceof Error ? e.message : UNSUPPORTED_MSG;
+      setError(msg === 'Failed to fetch' ? 'Не удалось отправить. Проверьте соединение.' : msg);
     }
   };
 
