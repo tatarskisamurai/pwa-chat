@@ -11,9 +11,12 @@ interface MessageInputProps {
   disabled?: boolean;
 }
 
+const UNSUPPORTED_MSG = 'Вложение не поддерживается';
+
 export function MessageInput({ chatId, onSend, disabled }: MessageInputProps) {
   const [text, setText] = useState('');
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [error, setError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { joinChat, leaveChat } = useSocket();
   const typingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -37,8 +40,13 @@ export function MessageInput({ chatId, onSend, disabled }: MessageInputProps) {
     const trimmed = text.trim();
     const hasFiles = pendingFiles.length > 0;
     if ((!trimmed && !hasFiles) || disabled) return;
-    setText('');
+    setError('');
     const filesToSend = [...pendingFiles];
+    if (filesToSend.some((f) => f.size === 0)) {
+      setError(UNSUPPORTED_MSG);
+      return;
+    }
+    setText('');
     setPendingFiles([]);
     const socket = getSocket();
     socket?.emit('typing:stop', { chatId });
@@ -49,7 +57,9 @@ export function MessageInput({ chatId, onSend, disabled }: MessageInputProps) {
         attachments = files;
       }
       await onSend(trimmed, attachments);
-    } catch {}
+    } catch (e) {
+      setError(e instanceof Error ? e.message : UNSUPPORTED_MSG);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -73,6 +83,7 @@ export function MessageInput({ chatId, onSend, disabled }: MessageInputProps) {
   const addFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
     const list = e.target.files ? Array.from(e.target.files) : [];
     if (list.length === 0) return;
+    setError('');
     setPendingFiles((prev) => [...prev, ...list].slice(0, 10));
     e.target.value = '';
   };
@@ -85,6 +96,7 @@ export function MessageInput({ chatId, onSend, disabled }: MessageInputProps) {
 
   return (
     <div className="flex flex-col gap-2 border-t border-gray-400 bg-gray-200 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:pb-3">
+      {error && <p className="text-sm text-red-600">{error}</p>}
       {pendingFiles.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {pendingFiles.map((f, i) => (

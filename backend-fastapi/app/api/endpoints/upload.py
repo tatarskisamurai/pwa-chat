@@ -58,6 +58,8 @@ async def upload_files(
         if not f.filename:
             continue
         content = await f.read()
+        if len(content) == 0:
+            raise HTTPException(status_code=400, detail="Вложение не поддерживается")
         if len(content) > MAX_FILE_SIZE:
             raise HTTPException(status_code=400, detail=f"Файл {f.filename} больше 20 МБ")
         safe_name = _safe_filename(f.filename)

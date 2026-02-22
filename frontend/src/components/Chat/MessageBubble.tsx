@@ -13,7 +13,7 @@ const EMPTY_FILE_REVOKE_DELAY_MS = 60_000;
 
 /**
  * Скачивает файл в фоне (без выхода из PWA).
- * Object URL отзывается: непустой — при размонтировании компонента; пустой — через EMPTY_FILE_REVOKE_DELAY_MS, чтобы диалог на мобилке успел завершиться.
+ * Object URL отзывается: непустой — при размонтировании компонента; пустой — через EMPTY_FILE_REVOKE_DELAY_MS.
  */
 async function downloadInBackground(
   url: string,
