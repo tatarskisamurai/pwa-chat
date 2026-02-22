@@ -9,9 +9,9 @@ interface MessageBubbleProps {
 }
 
 /**
- * Скачивает файл в фоне через fetch → blob → object URL → программный клик.
- * Object URL передаётся в registerRevoke: вызывающая сторона обязана вызвать URL.revokeObjectURL при размонтировании,
- * чтобы не зависеть от размера файла и не хардкодить таймауты.
+ * Скачивает файл в фоне через fetch → blob → object URL → программный клик (без выхода из PWA).
+ * Object URL передаётся в registerRevoke для отзыва при размонтировании.
+ * Пустые файлы (blob.size === 0) тоже идут через этот путь — fallback в новую вкладку в PWA не используем.
  */
 async function downloadInBackground(
   url: string,
@@ -71,9 +71,7 @@ export function MessageBubble({ message, isOwn, showAuthor }: MessageBubbleProps
                 setDownloading(a.id);
                 const register = (objUrl: string) => objectUrlsToRevoke.current.add(objUrl);
                 downloadInBackground(downloadUrl, name, register)
-                  .catch(() => {
-                    window.open(downloadUrl, '_blank', 'noopener,noreferrer');
-                  })
+                  .catch(() => {}) // в PWA новую вкладку не открываем
                   .finally(() => setDownloading(null));
               };
 
