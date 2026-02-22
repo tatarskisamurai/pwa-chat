@@ -1,3 +1,4 @@
+import asyncio
 import sys
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
@@ -6,6 +7,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 try:
+    from sqlalchemy import text
     from app.api.endpoints import auth, users, chats, messages, upload
     from app.api.endpoints.upload import UPLOADS_DIR
     from app.api.ws import get_router as get_ws_router
@@ -17,8 +19,23 @@ except Exception as e:
     raise
 
 
+async def _wait_for_db(max_attempts: int = 10, delay: float = 2.0):
+    """Ждём, пока БД станет доступна (DNS/сеть в Docker могут подниматься с задержкой)."""
+    for attempt in range(1, max_attempts + 1):
+        try:
+            async with engine.begin() as conn:
+                await conn.execute(text("SELECT 1"))
+            return
+        except Exception as e:
+            if attempt == max_attempts:
+                raise
+            print(f"DB not ready (attempt {attempt}/{max_attempts}): {e}", file=sys.stderr)
+            await asyncio.sleep(delay)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    await _wait_for_db()
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
         await run_all_migrations(conn)

@@ -25,8 +25,7 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://chat:chat_secret@postgres:5432/chat_db
       JWT_SECRET: ${JWT_SECRET:-your-super-secret-key-change-in-production}
-    ports:
-      - "8000:8000"
+    # Порт 8000 не публикуем на хост — к бэкенду обращаются только фронт (прокси) и nginx. Так не конфликтуем с тем, кто уже занял 8000.
     depends_on:
       postgres:
         condition: service_healthy
