@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { formatMessageDate } from '@/utils/dateFormatter';
 import type { Message } from '@/types/chat';
 
@@ -7,7 +8,24 @@ interface MessageBubbleProps {
   showAuthor?: boolean;
 }
 
+/** Скачивает файл в фоне, без перехода и без открытия во весь экран (удобно для PWA). */
+async function downloadInBackground(url: string, filename: string) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('Download failed');
+  const blob = await res.blob();
+  const objUrl = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = objUrl;
+  a.download = filename || 'file';
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(objUrl);
+}
+
 export function MessageBubble({ message, isOwn, showAuthor }: MessageBubbleProps) {
+  const [downloading, setDownloading] = useState<string | null>(null);
   const wrapperClass = isOwn ? 'flex justify-end' : 'flex justify-start';
   const bubbleClass = isOwn
     ? 'max-w-[85%] rounded-2xl rounded-br-md px-4 py-2.5 bg-green-600 text-white shadow-sm sm:max-w-[80%]'
@@ -31,6 +49,15 @@ export function MessageBubble({ message, isOwn, showAuthor }: MessageBubbleProps
               const downloadUrl = storedName
                 ? `${origin}/api/upload/download/${encodeURIComponent(storedName)}${a.filename ? `?filename=${encodeURIComponent(a.filename)}` : ''}`
                 : src;
+              const handleDownload = (e: React.MouseEvent) => {
+                e.preventDefault();
+                const name = a.filename || (isImage ? 'image' : 'file');
+                setDownloading(a.id);
+                downloadInBackground(downloadUrl, name)
+                  .catch(() => {})
+                  .finally(() => setDownloading(null));
+              };
+
               return isImage ? (
                 <div key={a.id} className="space-y-1">
                   <a href={src} target="_blank" rel="noopener noreferrer" className="block max-w-full">
@@ -40,26 +67,26 @@ export function MessageBubble({ message, isOwn, showAuthor }: MessageBubbleProps
                       className="max-h-64 rounded-lg object-contain"
                     />
                   </a>
-                  <a
-                    href={downloadUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs opacity-90 hover:opacity-100"
+                  <button
+                    type="button"
+                    onClick={handleDownload}
+                    disabled={!!downloading}
+                    className="text-xs opacity-90 hover:opacity-100 disabled:opacity-50"
                   >
-                    Скачать {a.filename || 'файл'}
-                  </a>
+                    {downloading === a.id ? 'Скачивание…' : `Скачать ${a.filename || 'файл'}`}
+                  </button>
                 </div>
               ) : (
-                <a
+                <button
                   key={a.id}
-                  href={downloadUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-sm underline"
+                  type="button"
+                  onClick={handleDownload}
+                  disabled={!!downloading}
+                  className="inline-flex items-center gap-1.5 text-sm underline disabled:opacity-50"
                 >
                   <span>{a.filename || 'Вложение'}</span>
-                  <span className="text-xs opacity-80">↓</span>
-                </a>
+                  <span className="text-xs opacity-80">{downloading === a.id ? '…' : '↓'}</span>
+                </button>
               );
             })}
           </div>
