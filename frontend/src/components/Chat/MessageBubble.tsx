@@ -8,20 +8,26 @@ interface MessageBubbleProps {
   showAuthor?: boolean;
 }
 
-/** Скачивает файл в фоне, без перехода и без открытия во весь экран (удобно для PWA). */
-async function downloadInBackground(url: string, filename: string) {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error('Download failed');
-  const blob = await res.blob();
-  const objUrl = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = objUrl;
-  a.download = filename || 'file';
-  a.style.display = 'none';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(objUrl);
+/** Скачивает файл в фоне. При ошибке (мобилка, большой документ) открывает ссылку в новой вкладке. */
+async function downloadInBackground(url: string, filename: string): Promise<void> {
+  try {
+    const res = await fetch(url, { credentials: 'include' });
+    if (!res.ok) throw new Error('Download failed');
+    const blob = await res.blob();
+    const objUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = objUrl;
+    a.download = filename || 'file';
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(objUrl);
+  } catch {
+    // На мобилке fetch+blob часто не срабатывает для документов — открываем ссылку, браузер сам предложит сохранить
+    window.open(url, '_blank', 'noopener,noreferrer');
+    throw new Error('fallback');
+  }
 }
 
 export function MessageBubble({ message, isOwn, showAuthor }: MessageBubbleProps) {
@@ -54,7 +60,7 @@ export function MessageBubble({ message, isOwn, showAuthor }: MessageBubbleProps
                 const name = a.filename || (isImage ? 'image' : 'file');
                 setDownloading(a.id);
                 downloadInBackground(downloadUrl, name)
-                  .catch(() => {})
+                  .catch(() => {}) // при fallback открыли вкладку, просто сбрасываем спиннер
                   .finally(() => setDownloading(null));
               };
 
