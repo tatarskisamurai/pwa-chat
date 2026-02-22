@@ -8,30 +8,30 @@ interface MessageBubbleProps {
   showAuthor?: boolean;
 }
 
+/** Задержка отзыва object URL для пустых файлов: на мобилке диалог «Скачать ещё раз?» может появиться с задержкой. */
+const EMPTY_FILE_REVOKE_DELAY_MS = 60_000;
+
 /**
  * Скачивает файл в фоне (без выхода из PWA).
- * Непустой файл: fetch → blob → object URL → клик; URL отзывается через registerRevoke при размонтировании.
- * Пустой файл (blob.size === 0): клик по ссылке на url с download — браузер сам запрашивает и сохраняет (на мобилке с blob для 0 байт часто «скачать снова?» и ошибка).
+ * Object URL отзывается: непустой — при размонтировании компонента; пустой — через EMPTY_FILE_REVOKE_DELAY_MS, чтобы диалог на мобилке успел завершиться.
  */
 async function downloadInBackground(
   url: string,
   filename: string,
-  registerRevoke: (objectUrl: string) => void
+  registerRevoke: (objectUrl: string) => void,
+  registerRevokeDelayed: (objectUrl: string, delayMs: number) => void
 ): Promise<void> {
   const res = await fetch(url, { credentials: 'include' });
   if (!res.ok) throw new Error('Download failed');
   const blob = await res.blob();
+  const objUrl = URL.createObjectURL(blob);
+  if (blob.size === 0) registerRevokeDelayed(objUrl, EMPTY_FILE_REVOKE_DELAY_MS);
+  else registerRevoke(objUrl);
   const a = document.createElement('a');
+  a.href = objUrl;
   a.download = filename || 'file';
   a.style.display = 'none';
   document.body.appendChild(a);
-  if (blob.size === 0) {
-    a.href = url;
-  } else {
-    const objUrl = URL.createObjectURL(blob);
-    registerRevoke(objUrl);
-    a.href = objUrl;
-  }
   a.click();
   document.body.removeChild(a);
 }
@@ -39,13 +39,29 @@ async function downloadInBackground(
 export function MessageBubble({ message, isOwn, showAuthor }: MessageBubbleProps) {
   const [downloading, setDownloading] = useState<string | null>(null);
   const objectUrlsToRevoke = useRef<Set<string>>(new Set());
+  const delayedRevokeTimeouts = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   useEffect(() => {
     return () => {
       objectUrlsToRevoke.current.forEach((url) => URL.revokeObjectURL(url));
       objectUrlsToRevoke.current.clear();
+      delayedRevokeTimeouts.current.forEach((id, url) => {
+        clearTimeout(id);
+        URL.revokeObjectURL(url);
+      });
+      delayedRevokeTimeouts.current.clear();
     };
   }, []);
+
+  const registerRevokeDelayed = (objectUrl: string, delayMs: number) => {
+    const prev = delayedRevokeTimeouts.current.get(objectUrl);
+    if (prev) clearTimeout(prev);
+    const id = setTimeout(() => {
+      URL.revokeObjectURL(objectUrl);
+      delayedRevokeTimeouts.current.delete(objectUrl);
+    }, delayMs);
+    delayedRevokeTimeouts.current.set(objectUrl, id);
+  };
   const wrapperClass = isOwn ? 'flex justify-end' : 'flex justify-start';
   const bubbleClass = isOwn
     ? 'max-w-[85%] rounded-2xl rounded-br-md px-4 py-2.5 bg-green-600 text-white shadow-sm sm:max-w-[80%]'
@@ -74,7 +90,7 @@ export function MessageBubble({ message, isOwn, showAuthor }: MessageBubbleProps
                 const name = a.filename || (isImage ? 'image' : 'file');
                 setDownloading(a.id);
                 const register = (objUrl: string) => objectUrlsToRevoke.current.add(objUrl);
-                downloadInBackground(downloadUrl, name, register)
+                downloadInBackground(downloadUrl, name, register, registerRevokeDelayed)
                   .catch(() => {})
                   .finally(() => setDownloading(null));
               };
