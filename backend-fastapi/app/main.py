@@ -43,12 +43,14 @@ async def lifespan(app: FastAPI):
     await engine.dispose()
 
 
-# Разрешаемые origins для CORS (фронт на другом порту)
+# Разрешаемые origins для CORS
 CORS_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "https://drun.kiriapp.ru",
+    "http://drun.kiriapp.ru",
 ]
 
 app = FastAPI(title="Chat API", lifespan=lifespan)

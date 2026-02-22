@@ -42,10 +42,6 @@ export function MessageInput({ chatId, onSend, disabled }: MessageInputProps) {
     if ((!trimmed && !hasFiles) || disabled) return;
     setError('');
     const filesToSend = [...pendingFiles];
-    if (filesToSend.some((f) => f.size === 0)) {
-      setError(UNSUPPORTED_MSG);
-      return;
-    }
     setText('');
     setPendingFiles([]);
     const socket = getSocket();
