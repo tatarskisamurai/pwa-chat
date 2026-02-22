@@ -41,13 +41,20 @@ export const api = {
   async uploadFiles(files: File[]): Promise<{ files: { url: string; type?: string; filename?: string }[] }> {
     const form = new FormData();
     files.forEach((f) => form.append('files', f));
-    const res = await fetch(`${BASE}/api/upload`, {
-      method: 'POST',
-      headers: getHeaders(false),
-      body: form,
-      credentials: 'include',
-    });
-    return handleResponse(res);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5 * 60 * 1000);
+    try {
+      const res = await fetch(`${BASE}/api/upload`, {
+        method: 'POST',
+        headers: getHeaders(false),
+        body: form,
+        credentials: 'include',
+        signal: controller.signal,
+      });
+      return handleResponse(res);
+    } finally {
+      clearTimeout(timeoutId);
+    }
   },
   async patch<T>(path: string, body: unknown): Promise<T> {
     const res = await fetch(`${BASE}${path}`, {

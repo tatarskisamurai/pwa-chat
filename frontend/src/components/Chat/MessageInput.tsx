@@ -55,7 +55,11 @@ export function MessageInput({ chatId, onSend, disabled }: MessageInputProps) {
       await onSend(trimmed, attachments);
     } catch (e) {
       const msg = e instanceof Error ? e.message : UNSUPPORTED_MSG;
-      setError(msg === 'Failed to fetch' ? 'Не удалось отправить. Проверьте соединение.' : msg);
+      const isNetwork =
+        msg === 'Failed to fetch' ||
+        msg.toLowerCase().includes('aborted') ||
+        msg.toLowerCase().includes('network');
+      setError(isNetwork ? 'Не удалось отправить. Проверьте соединение или попробуйте позже.' : msg);
     }
   };
 
