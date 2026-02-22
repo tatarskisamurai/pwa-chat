@@ -2,6 +2,35 @@ import { useEffect, useRef, useState } from 'react';
 import { formatMessageDate } from '@/utils/dateFormatter';
 import type { Message } from '@/types/chat';
 
+const URL_REGEX = /(https?:\/\/[^\s<>]+)/g;
+
+/** Разбивает текст на фрагменты и превращает URL в кликабельные ссылки. */
+function linkify(text: string): (string | React.ReactElement)[] {
+  if (!text) return [];
+  const parts = text.split(URL_REGEX);
+  return parts.map((part, i) => {
+    // Нечётные индексы — совпадения URL по split(URL_REGEX)
+    if (i % 2 === 1) {
+      const href = part.replace(/[.,;:)\]}>]+$/, '');
+      const trailing = part.slice(href.length);
+      return (
+        <span key={i}>
+          <a
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline break-all"
+          >
+            {href}
+          </a>
+          {trailing}
+        </span>
+      );
+    }
+    return part;
+  });
+}
+
 interface MessageBubbleProps {
   message: Message;
   isOwn: boolean;
@@ -74,7 +103,7 @@ export function MessageBubble({ message, isOwn, showAuthor }: MessageBubbleProps
         {showAuthor && !isOwn && (
           <p className="mb-0.5 text-xs font-medium text-gray-600">{message.user_id}</p>
         )}
-        <p className="whitespace-pre-wrap break-words">{message.content || ''}</p>
+        <p className="whitespace-pre-wrap break-words">{linkify(message.content || '')}</p>
         {message.attachments && message.attachments.length > 0 ? (
           <div className="mt-2 space-y-2">
             {message.attachments.map((a) => {
