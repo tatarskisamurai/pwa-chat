@@ -4,11 +4,11 @@ import type { Message } from '@/types/chat';
 
 const URL_REGEX = /(https?:\/\/[^\s<>]+)/g;
 
-/** Цвет ссылки и зона нажатия: в своих — светлая, в чужих — синяя; на мобилке удобнее тапать. */
+/** Ссылка как явная «таблетка»: на мобилке сразу видно, что это ссылка. */
 const linkClass = (isOwn: boolean) =>
   isOwn
-    ? 'underline break-all text-green-100 decoration-green-200 cursor-pointer inline-block py-0.5 min-h-[2.25em]'
-    : 'underline break-all text-blue-600 decoration-blue-400 cursor-pointer inline-block py-0.5 min-h-[2.25em]';
+    ? 'rounded-md bg-white/25 px-1.5 py-0.5 break-all text-green-100 underline decoration-green-200 cursor-pointer inline-block min-h-[2em] font-medium'
+    : 'rounded-md bg-blue-100 px-1.5 py-0.5 break-all text-blue-700 underline decoration-blue-400 cursor-pointer inline-block min-h-[2em] font-medium';
 
 /** Разбивает текст на фрагменты и превращает URL в кликабельные ссылки. */
 function linkify(text: string, isOwn: boolean): (string | React.ReactElement)[] {
@@ -27,12 +27,13 @@ function linkify(text: string, isOwn: boolean): (string | React.ReactElement)[] 
             className={linkClass(isOwn)}
             style={
               (isOwn
-                ? { WebkitTapHighlightColor: 'rgba(255,255,255,0.3)' }
-                : { WebkitTapHighlightColor: 'rgba(0,0,0,0.08)' }) as React.CSSProperties
+                ? { WebkitTapHighlightColor: 'rgba(255,255,255,0.4)' }
+                : { WebkitTapHighlightColor: 'rgba(59,130,246,0.4)' }) as React.CSSProperties
             }
             onClick={(e) => e.stopPropagation()}
           >
             {href}
+            <span className="ml-0.5 opacity-80" aria-hidden>↗</span>
           </a>
           {trailing}
         </span>

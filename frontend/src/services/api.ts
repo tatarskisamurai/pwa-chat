@@ -38,26 +38,35 @@ export const api = {
     return handleResponse<T>(res);
   },
   /** Загрузка файлов: возвращает { files: [{ url, type, filename }] }.
-   * Файлы читаем в Blob перед отправкой — на мобилке FormData с нативным File часто падает. */
+   * Сначала пробуем через Blob (надёжнее на мобилке), при ошибке — отправка File как есть. */
   async uploadFiles(files: File[]): Promise<{ files: { url: string; type?: string; filename?: string }[] }> {
-    const form = new FormData();
     const safeName = (name: string) => {
       const ext = name.includes('.') ? name.slice(name.lastIndexOf('.')) : '';
       const base = name.slice(0, name.lastIndexOf('.') || name.length).replace(/[^\w\s\-\.]/g, '_').slice(0, 80);
       return (base || 'file') + (ext || '');
     };
-    for (const f of files) {
-      const buffer = await f.arrayBuffer();
-      const blob = new Blob([buffer], { type: f.type || 'application/octet-stream' });
-      form.append('files', blob, safeName(f.name || 'file'));
+
+    const doUpload = (form: FormData) =>
+      fetch(`${BASE}/api/upload`, {
+        method: 'POST',
+        headers: getHeaders(false),
+        body: form,
+        credentials: 'include',
+      }).then((res) => handleResponse<{ files: { url: string; type?: string; filename?: string }[] }>(res));
+
+    try {
+      const form = new FormData();
+      for (const f of files) {
+        const buffer = await f.arrayBuffer();
+        const blob = new Blob([buffer], { type: f.type || 'application/octet-stream' });
+        form.append('files', blob, safeName(f.name || 'file'));
+      }
+      return await doUpload(form);
+    } catch {
+      const formFallback = new FormData();
+      files.forEach((f) => formFallback.append('files', f));
+      return await doUpload(formFallback);
     }
-    const res = await fetch(`${BASE}/api/upload`, {
-      method: 'POST',
-      headers: getHeaders(false),
-      body: form,
-      credentials: 'include',
-    });
-    return handleResponse(res);
   },
   async patch<T>(path: string, body: unknown): Promise<T> {
     const res = await fetch(`${BASE}${path}`, {
