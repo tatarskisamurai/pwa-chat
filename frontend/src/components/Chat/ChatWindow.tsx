@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   useChat,
@@ -6,6 +6,8 @@ import {
   useSendMessage,
   useUpdateMessage,
   useDeleteMessage,
+  useAddChatMembers,
+  useUsersList,
   sortMessagesByTime,
   normalizeMessage,
   applyRealMessage,
@@ -19,6 +21,7 @@ import { MessageInput } from './MessageInput';
 import { Loader } from '@/components/Common/Loader';
 import { Avatar } from '@/components/Common/Avatar';
 import type { Chat, Message } from '@/types/chat';
+import type { User } from '@/types/user';
 
 interface ChatWindowProps {
   chatId: string | null;
@@ -34,7 +37,14 @@ export function ChatWindow({ chatId, onBack }: ChatWindowProps) {
   const sendMessageRest = useSendMessage(chatId ?? '');
   const updateMessage = useUpdateMessage(chatId ?? '');
   const deleteMessage = useDeleteMessage(chatId ?? '');
+  const addChatMembers = useAddChatMembers(chatId ?? '');
+  const [addMembersOpen, setAddMembersOpen] = useState(false);
+  const [addMembersSearch, setAddMembersSearch] = useState('');
+  const [addMembersSelected, setAddMembersSelected] = useState<User[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  const { data: addMembersUsers } = useUsersList(addMembersSearch);
+  const canAddMembers = chat?.type === 'group' && chat?.current_user_role === 'admin';
 
   const chatTitle = chat?.display_name || chat?.name || (chatId ? `Чат ${chatId.slice(0, 8)}` : null);
 
@@ -169,12 +179,123 @@ export function ChatWindow({ chatId, onBack }: ChatWindowProps) {
         <div className="min-w-0 flex-1">
           <h1 className="truncate font-semibold text-white">{chatTitle}</h1>
           <p className="text-xs text-white/85">
-          {chat?.type === 'group' && chat?.members_count != null
-            ? `${chat.members_count} участников`
-            : 'в сети'}
-        </p>
+            {chat?.type === 'group' && chat?.members_count != null
+              ? `${chat.members_count} участников`
+              : 'в сети'}
+          </p>
         </div>
+        {canAddMembers && (
+          <button
+            type="button"
+            onClick={() => setAddMembersOpen(true)}
+            className="flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-lg text-white/90 hover:bg-white/15"
+            aria-label="Добавить участников"
+            title="Добавить участников"
+          >
+            <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+            </svg>
+          </button>
+        )}
       </header>
+
+      {addMembersOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="max-h-[85vh] w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b border-gray-200 p-4">
+              <h2 className="text-lg font-semibold text-gray-900">Добавить в группу</h2>
+              <button
+                type="button"
+                onClick={() => { setAddMembersOpen(false); setAddMembersSearch(''); setAddMembersSelected([]); }}
+                className="rounded-lg p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                aria-label="Закрыть"
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-4">
+              <input
+                type="text"
+                placeholder="Поиск по нику"
+                value={addMembersSearch}
+                onChange={(e) => setAddMembersSearch(e.target.value)}
+                className="mb-4 w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-500 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+              />
+              {addMembersSelected.length > 0 && (
+                <p className="mb-2 text-sm text-gray-600">
+                  Выбрано: {addMembersSelected.map((u) => u.username).join(', ')}
+                </p>
+              )}
+              <div className="max-h-48 overflow-y-auto rounded-xl border border-gray-200">
+                {addMembersSearch.trim().length < 1 ? (
+                  <p className="p-4 text-center text-sm text-gray-500">Введите ник для поиска</p>
+                ) : !addMembersUsers?.length ? (
+                  <p className="p-4 text-center text-sm text-gray-500">Никого не найдено</p>
+                ) : (
+                  <ul className="divide-y divide-gray-100">
+                    {(addMembersUsers as User[])
+                      .filter((u) => u.id !== user?.id)
+                      .map((u) => {
+                        const selected = addMembersSelected.some((x) => x.id === u.id);
+                        return (
+                          <li key={u.id}>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setAddMembersSelected((prev) =>
+                                  selected ? prev.filter((x) => x.id !== u.id) : [...prev, u]
+                                )
+                              }
+                              className={`flex w-full items-center gap-3 px-3 py-2.5 text-left transition ${
+                                selected ? 'bg-green-50' : 'hover:bg-gray-50'
+                              }`}
+                            >
+                              <Avatar alt={u.username} size="md" src={u.avatar} />
+                              <div className="min-w-0 flex-1">
+                                <p className="font-medium text-gray-900">{u.username}</p>
+                                <p className="text-sm text-gray-500">@{u.handle}</p>
+                              </div>
+                              {selected && <span className="text-green-600">✓</span>}
+                            </button>
+                          </li>
+                        );
+                      })}
+                  </ul>
+                )}
+              </div>
+            </div>
+            <div className="flex gap-2 border-t border-gray-200 p-4">
+              <button
+                type="button"
+                onClick={() => { setAddMembersOpen(false); setAddMembersSearch(''); setAddMembersSelected([]); }}
+                className="flex-1 rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Отмена
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (addMembersSelected.length > 0) {
+                    addChatMembers.mutate(addMembersSelected.map((u) => u.id), {
+                      onSuccess: () => {
+                        setAddMembersOpen(false);
+                        setAddMembersSearch('');
+                        setAddMembersSelected([]);
+                      },
+                    });
+                  }
+                }}
+                disabled={addMembersSelected.length === 0 || addChatMembers.isPending}
+                className="flex-1 rounded-xl bg-green-600 py-2.5 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50"
+              >
+                {addChatMembers.isPending ? 'Добавление…' : 'Добавить'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="min-h-0 flex-1 overflow-y-auto bg-gray-300 p-3 space-y-3 md:p-4">
         {sortedMessages.map((msg) => (
           <MessageBubble

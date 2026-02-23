@@ -153,3 +153,16 @@ export function useDeleteMessage(chatId: string) {
     },
   });
 }
+
+export function useAddChatMembers(chatId: string) {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: (memberIds: string[]) =>
+      api.post(`/api/chats/${chatId}/members`, { member_ids: memberIds }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['chat', chatId] });
+      qc.invalidateQueries({ queryKey: ['chats'] });
+    },
+  });
+}

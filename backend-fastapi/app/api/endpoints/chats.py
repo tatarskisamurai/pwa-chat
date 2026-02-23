@@ -5,7 +5,7 @@ from sqlalchemy import select, func, delete
 from sqlalchemy.orm import selectinload
 from app.database import get_db
 from app.models import User, Chat, ChatMember, Message
-from app.schemas.chat import ChatCreate, ChatResponse, ChatUpdate
+from app.schemas.chat import ChatCreate, ChatResponse, ChatUpdate, AddMembersRequest
 from app.api.deps import get_current_user
 
 router = APIRouter(prefix="/chats", tags=["chats"])
@@ -13,6 +13,9 @@ router = APIRouter(prefix="/chats", tags=["chats"])
 
 async def _chat_response(chat: Chat, db: AsyncSession, current_user: User) -> dict:
     members_count = await db.scalar(select(func.count()).select_from(ChatMember).where(ChatMember.chat_id == chat.id))
+    current_member = await db.execute(
+        select(ChatMember).where(ChatMember.chat_id == chat.id, ChatMember.user_id == current_user.id)
+    )
     last_msg = await db.execute(
         select(Message)
         .where(Message.chat_id == chat.id)
@@ -30,6 +33,7 @@ async def _chat_response(chat: Chat, db: AsyncSession, current_user: User) -> di
         other_user = other.scalar_one_or_none()
         if other_user:
             display_name = other_user.username or getattr(other_user, "handle", None) or str(other_user.id)
+    m = current_member.scalar_one_or_none()
     return {
         "id": chat.id,
         "type": chat.type,
@@ -37,6 +41,7 @@ async def _chat_response(chat: Chat, db: AsyncSession, current_user: User) -> di
         "display_name": display_name,
         "created_at": chat.created_at,
         "members_count": members_count,
+        "current_user_role": m.role if m else None,
         "last_message": {
             "id": str(last_message.id),
             "content": last_message.content,
@@ -135,6 +140,35 @@ async def update_chat(
     await db.commit()
     await db.refresh(chat)
     return ChatResponse(**(await _chat_response(chat, db, current_user)))
+
+
+@router.post("/{chat_id}/members", status_code=204)
+async def add_chat_members(
+    chat_id: UUID,
+    data: AddMembersRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    r = await db.execute(select(Chat).where(Chat.id == chat_id))
+    chat = r.scalar_one_or_none()
+    if not chat:
+        raise HTTPException(status_code=404, detail="Chat not found")
+    if chat.type != "group":
+        raise HTTPException(status_code=400, detail="Добавлять участников можно только в групповой чат")
+    r2 = await db.execute(select(ChatMember).where(ChatMember.chat_id == chat_id, ChatMember.user_id == current_user.id))
+    member = r2.scalar_one_or_none()
+    if not member or member.role != "admin":
+        raise HTTPException(status_code=403, detail="Только администратор группы может добавлять участников")
+    existing = await db.execute(select(ChatMember.user_id).where(ChatMember.chat_id == chat_id))
+    existing_ids = {row[0] for row in existing.all()}
+    added = 0
+    for uid in data.member_ids:
+        if uid != current_user.id and uid not in existing_ids:
+            db.add(ChatMember(chat_id=chat_id, user_id=uid, role="member"))
+            existing_ids.add(uid)
+            added += 1
+    await db.commit()
+    return None
 
 
 @router.delete("/{chat_id}", status_code=204)

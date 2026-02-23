@@ -16,6 +16,10 @@ class ChatUpdate(BaseModel):
     name: str | None = None
 
 
+class AddMembersRequest(BaseModel):
+    member_ids: list[UUID]
+
+
 class ChatMemberResponse(BaseModel):
     user_id: UUID
     role: str
@@ -32,6 +36,7 @@ class ChatResponse(BaseModel):
     display_name: str | None = None  # для личного чата — имя собеседника
     created_at: datetime
     members_count: int | None = None
+    current_user_role: str | None = None  # admin | member — роль текущего пользователя
     last_message: dict | None = None
 
     class Config:

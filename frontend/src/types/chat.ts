@@ -5,6 +5,7 @@ export interface Chat {
   display_name?: string | null;  // для личного чата — имя собеседника
   created_at: string;
   members_count?: number;
+  current_user_role?: 'admin' | 'member' | null;  // роль текущего пользователя в чате
   last_message?: {
     id: string;
     content: string | null;
