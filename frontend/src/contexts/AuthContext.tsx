@@ -11,6 +11,8 @@ interface AuthContextValue {
   login: (username: string, password: string) => Promise<void>;
   register: (username: string, password: string) => Promise<void>;
   logout: () => void;
+  /** Обновить данные пользователя (например после смены аватарки). */
+  updateUser: (user: User) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -67,7 +69,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setToken(null);
   }, []);
 
-  const value: AuthContextValue = { user, token, loading, login, register, logout };
+  const updateUser = useCallback((u: User) => setUser(u), []);
+  const value: AuthContextValue = { user, token, loading, login, register, logout, updateUser };
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
