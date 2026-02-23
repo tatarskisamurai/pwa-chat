@@ -138,7 +138,7 @@ export function MessageBubble({
     <div className={`${wrapperClass} group`}>
       <div className={bubbleClass}>
         {showAuthor && !isOwn && (
-          <p className="mb-0.5 text-xs font-medium text-gray-600">{message.user_id}</p>
+          <p className="mb-0.5 text-xs font-medium text-gray-600">{message.sender_name || message.user_id}</p>
         )}
         {editing ? (
           <div className="space-y-2">

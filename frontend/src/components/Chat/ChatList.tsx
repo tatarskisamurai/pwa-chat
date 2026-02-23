@@ -16,12 +16,15 @@ interface ChatListProps {
 export function ChatList({ selectedChatId, onSelectChat }: ChatListProps) {
   const { user, logout } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
+  const [creatingGroup, setCreatingGroup] = useState(false);
+  const [groupName, setGroupName] = useState('');
+  const [selectedForGroup, setSelectedForGroup] = useState<User[]>([]);
   const { data: chats, isLoading: chatsLoading } = useChatList();
   const { data: searchUsers, isLoading: searchLoading, isError: searchError, error: searchErr } = useUsersList(searchQuery);
   const createChat = useCreateChat();
 
   const isSearch = searchQuery.trim().length >= 1;
-  const showSearchResults = isSearch;
+  const showSearchResults = isSearch && !creatingGroup;
 
   const handleSelectUser = async (u: User) => {
     try {
@@ -31,6 +34,30 @@ export function ChatList({ selectedChatId, onSelectChat }: ChatListProps) {
       });
       onSelectChat(chat.id);
       setSearchQuery('');
+    } catch {
+      // todo: toast
+    }
+  };
+
+  const toggleUserForGroup = (u: User) => {
+    setSelectedForGroup((prev) =>
+      prev.some((x) => x.id === u.id) ? prev.filter((x) => x.id !== u.id) : [...prev, u]
+    );
+  };
+
+  const handleCreateGroup = async () => {
+    const name = groupName.trim();
+    if (!name || selectedForGroup.length === 0) return;
+    try {
+      const chat = await createChat.mutateAsync({
+        type: 'group',
+        name,
+        member_ids: selectedForGroup.map((u) => u.id),
+      });
+      onSelectChat(chat.id);
+      setCreatingGroup(false);
+      setGroupName('');
+      setSelectedForGroup([]);
     } catch {
       // todo: toast
     }
@@ -71,15 +98,88 @@ export function ChatList({ selectedChatId, onSelectChat }: ChatListProps) {
         </div>
         <input
           type="text"
-          placeholder="Поиск по нику"
+          placeholder={creatingGroup ? 'Поиск участников по нику' : 'Поиск по нику'}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="w-full rounded-xl border-0 bg-white/90 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-white/50"
         />
+        {!creatingGroup && (
+          <button
+            type="button"
+            onClick={() => setCreatingGroup(true)}
+            className="mt-2 w-full rounded-xl bg-white/15 py-2.5 text-sm font-medium text-white hover:bg-white/25"
+          >
+            Создать групповой чат
+          </button>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto bg-gray-50">
-        {showSearchResults ? (
+        {creatingGroup ? (
+          <div className="flex flex-col p-3">
+            <button
+              type="button"
+              onClick={() => { setCreatingGroup(false); setSelectedForGroup([]); setGroupName(''); setSearchQuery(''); }}
+              className="mb-3 self-start rounded-lg px-2 py-1.5 text-sm text-gray-600 hover:bg-gray-200"
+            >
+              ← Назад
+            </button>
+            <h2 className="mb-3 text-base font-semibold text-gray-800">Новый групповой чат</h2>
+            <input
+              type="text"
+              placeholder="Название группы"
+              value={groupName}
+              onChange={(e) => setGroupName(e.target.value)}
+              className="mb-4 rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-500 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+            />
+            {selectedForGroup.length > 0 && (
+              <p className="mb-2 text-sm text-gray-600">Участники: {selectedForGroup.map((u) => u.username).join(', ')}</p>
+            )}
+            {isSearch ? (
+              searchLoading ? (
+                <Loader />
+              ) : !searchUsers?.length ? (
+                <p className="py-4 text-center text-sm text-gray-500">Никого не найдено</p>
+              ) : (
+                <ul className="space-y-1">
+                  {searchUsers
+                    .filter((u) => u.id !== user?.id)
+                    .map((u) => {
+                      const selected = selectedForGroup.some((x) => x.id === u.id);
+                      return (
+                        <li key={u.id}>
+                          <button
+                            type="button"
+                            onClick={() => toggleUserForGroup(u)}
+                            className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition ${
+                              selected ? 'bg-green-100 ring-1 ring-green-300' : 'hover:bg-gray-100'
+                            }`}
+                          >
+                            <Avatar alt={u.username} size="md" src={u.avatar} />
+                            <div className="min-w-0 flex-1">
+                              <p className="font-medium text-gray-900">{u.username}</p>
+                              <p className="text-sm text-gray-500">@{u.handle}</p>
+                            </div>
+                            {selected && <span className="text-green-600">✓</span>}
+                          </button>
+                        </li>
+                      );
+                    })}
+                </ul>
+              )
+            ) : (
+              <p className="py-4 text-sm text-gray-500">Введите ник в поиске выше, чтобы добавить участников.</p>
+            )}
+            <button
+              type="button"
+              onClick={handleCreateGroup}
+              disabled={!groupName.trim() || selectedForGroup.length === 0 || createChat.isPending}
+              className="mt-4 w-full rounded-xl bg-green-600 py-3 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50"
+            >
+              {createChat.isPending ? 'Создание…' : 'Создать группу'}
+            </button>
+          </div>
+        ) : showSearchResults ? (
           <>
             {searchLoading ? (
               <Loader />
@@ -119,7 +219,7 @@ export function ChatList({ selectedChatId, onSelectChat }: ChatListProps) {
             {chatsLoading ? (
               <Loader />
             ) : !chats?.length ? (
-              <p className="p-6 text-center text-sm text-gray-500">Чатов пока нет. Введите в поиске ник человека и нажмите на него, чтобы начать диалог.</p>
+              <p className="p-6 text-center text-sm text-gray-500">Чатов пока нет. Введите в поиске ник или создайте групповой чат.</p>
             ) : (
               <ul className="p-2">
                 {chats.map((chat: Chat) => (
@@ -131,11 +231,22 @@ export function ChatList({ selectedChatId, onSelectChat }: ChatListProps) {
                         selectedChatId === chat.id ? 'bg-green-50 text-gray-900' : 'text-gray-800 hover:bg-gray-100'
                       }`}
                     >
-                      <Avatar alt={chat.display_name || chat.name || chat.id} size="md" />
+                      {chat.type === 'group' ? (
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-100 text-green-600">
+                          <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                          </svg>
+                        </div>
+                      ) : (
+                        <Avatar alt={chat.display_name || chat.name || chat.id} size="md" />
+                      )}
                       <div className="min-w-0 flex-1">
                         <p className="truncate font-medium">
                           {chat.display_name || chat.name || `Чат ${chat.id.slice(0, 8)}`}
                         </p>
+                        {chat.type === 'group' && chat.members_count != null && (
+                          <p className="text-xs text-gray-500">{chat.members_count} участников</p>
+                        )}
                         {chat.last_message && (
                           <p className="truncate text-sm text-gray-500">
                             {chat.last_message.content || '—'}

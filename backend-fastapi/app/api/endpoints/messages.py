@@ -13,6 +13,8 @@ router = APIRouter(prefix="/messages", tags=["messages"])
 
 
 def _message_to_response(msg: Message) -> dict:
+    user = getattr(msg, "user", None)
+    sender_name = (user.username or getattr(user, "handle", None)) if user else None
     return {
         "id": msg.id,
         "chat_id": msg.chat_id,
@@ -22,6 +24,7 @@ def _message_to_response(msg: Message) -> dict:
         "created_at": msg.created_at,
         "updated_at": getattr(msg, "updated_at", None),
         "attachments": [AttachmentResponse.model_validate(a) for a in msg.attachments],
+        "sender_name": sender_name,
     }
 
 
@@ -39,7 +42,7 @@ async def list_messages(
     result = await db.execute(
         select(Message)
         .where(Message.chat_id == chat_id)
-        .options(selectinload(Message.attachments))
+        .options(selectinload(Message.attachments), selectinload(Message.user))
         .order_by(Message.created_at.desc())
         .offset(skip)
         .limit(limit)
@@ -77,9 +80,11 @@ async def create_message(
         )
         db.add(att_obj)
     await db.commit()
-    result = await db.execute(select(Message).where(Message.id == msg.id).options(selectinload(Message.attachments)))
+    result = await db.execute(select(Message).where(Message.id == msg.id).options(selectinload(Message.attachments), selectinload(Message.user)))
     msg = result.scalar_one()
     resp = _message_to_response(msg)
+    user = getattr(msg, "user", None)
+    sender_name = (user.username or getattr(user, "handle", None)) if user else None
     payload = {
         "id": str(msg.id),
         "chat_id": str(msg.chat_id),
@@ -88,6 +93,7 @@ async def create_message(
         "type": msg.type,
         "created_at": msg.created_at.isoformat(),
         "attachments": [{"id": str(a.id), "url": a.url, "type": a.type, "filename": a.filename} for a in msg.attachments],
+        "sender_name": sender_name,
     }
     try:
         await ws_manager.broadcast_to_chat(str(chat_id), {"type": "new_message", "message": payload})
@@ -109,7 +115,7 @@ async def update_message(
     r = await db.execute(
         select(Message)
         .where(Message.id == message_id)
-        .options(selectinload(Message.attachments))
+        .options(selectinload(Message.attachments), selectinload(Message.user))
     )
     msg = r.scalar_one_or_none()
     if not msg:
@@ -182,7 +188,7 @@ async def search_messages(
 ):
     from sqlalchemy import or_
     subq = select(ChatMember.chat_id).where(ChatMember.user_id == current_user.id)
-    query = select(Message).options(selectinload(Message.attachments)).where(
+    query = select(Message).options(selectinload(Message.attachments), selectinload(Message.user)).where(
         Message.chat_id.in_(subq),
         Message.content.ilike(f"%{q}%"),
     )

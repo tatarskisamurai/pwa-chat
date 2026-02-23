@@ -168,7 +168,11 @@ export function ChatWindow({ chatId, onBack }: ChatWindowProps) {
         <Avatar alt={chatTitle ?? ''} size="md" />
         <div className="min-w-0 flex-1">
           <h1 className="truncate font-semibold text-white">{chatTitle}</h1>
-          <p className="text-xs text-white/85">в сети</p>
+          <p className="text-xs text-white/85">
+          {chat?.type === 'group' && chat?.members_count != null
+            ? `${chat.members_count} участников`
+            : 'в сети'}
+        </p>
         </div>
       </header>
       <div className="min-h-0 flex-1 overflow-y-auto bg-gray-300 p-3 space-y-3 md:p-4">

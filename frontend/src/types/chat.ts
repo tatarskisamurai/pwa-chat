@@ -20,6 +20,7 @@ export interface Message {
   type: string;
   created_at: string;
   updated_at?: string | null;
+  sender_name?: string | null;
   attachments?: { id: string; url: string; type?: string; filename?: string }[];
 }
 

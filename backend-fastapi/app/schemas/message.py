@@ -41,6 +41,7 @@ class MessageResponse(BaseModel):
     created_at: datetime
     updated_at: datetime | None = None
     attachments: list[AttachmentResponse] = []
+    sender_name: str | None = None  # для групповых чатов — ник отправителя
 
     class Config:
         from_attributes = True
