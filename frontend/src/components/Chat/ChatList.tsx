@@ -291,6 +291,10 @@ export function ChatList({ selectedChatId, onSelectChat }: ChatListProps) {
             chatId={participantsChatId}
             chatName={chat?.display_name ?? chat?.name ?? null}
             onClose={() => setParticipantsChatId(null)}
+            onLeave={() => {
+              setParticipantsChatId(null);
+              onSelectChat('');
+            }}
           />
         );
       })()}

@@ -170,6 +170,22 @@ export function useAddChatMembers(chatId: string) {
       api.post(`/api/chats/${chatId}/members`, { member_ids: memberIds }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['chat', chatId] });
+      qc.invalidateQueries({ queryKey: ['chatMembers', chatId] });
+      qc.invalidateQueries({ queryKey: ['chats'] });
+    },
+  });
+}
+
+/** Выйти из группы (удалить себя из участников). */
+export function useLeaveChat(chatId: string) {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: (userId: string) =>
+      api.delete(`/api/chats/${chatId}/members/${userId}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['chat', chatId] });
+      qc.invalidateQueries({ queryKey: ['chatMembers', chatId] });
       qc.invalidateQueries({ queryKey: ['chats'] });
     },
   });

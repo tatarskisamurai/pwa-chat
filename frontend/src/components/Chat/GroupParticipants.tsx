@@ -1,4 +1,5 @@
-import { useChatMembers } from '@/hooks/useChat';
+import { useChatMembers, useLeaveChat } from '@/hooks/useChat';
+import { useAuth } from '@/contexts/AuthContext';
 import { Avatar } from '@/components/Common/Avatar';
 import { Loader } from '@/components/Common/Loader';
 import type { ChatMemberWithUser } from '@/types/chat';
@@ -7,11 +8,26 @@ interface GroupParticipantsProps {
   chatId: string;
   chatName: string | null;
   onClose: () => void;
+  onLeave?: () => void;
 }
 
 /** Просмотр участников группового чата. Доступно всем участникам группы. */
-export function GroupParticipants({ chatId, chatName, onClose }: GroupParticipantsProps) {
+export function GroupParticipants({ chatId, chatName, onClose, onLeave }: GroupParticipantsProps) {
+  const { user } = useAuth();
   const { data: members, isLoading } = useChatMembers(chatId);
+  const leaveChat = useLeaveChat(chatId);
+
+  const handleLeave = async () => {
+    if (!user?.id) return;
+    if (!window.confirm('Выйти из группы?')) return;
+    try {
+      await leaveChat.mutateAsync(user.id);
+      onClose();
+      onLeave?.();
+    } catch {
+      // todo: toast
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -50,6 +66,16 @@ export function GroupParticipants({ chatId, chatName, onClose }: GroupParticipan
                     <span className="shrink-0 rounded bg-green-100 px-1.5 py-0.5 text-xs font-medium text-green-700">
                       админ
                     </span>
+                  )}
+                  {String(m.user_id) === String(user?.id) && (
+                    <button
+                      type="button"
+                      onClick={handleLeave}
+                      disabled={leaveChat.isPending}
+                      className="shrink-0 rounded-lg bg-red-50 px-2.5 py-1.5 text-sm font-medium text-red-600 hover:bg-red-100 disabled:opacity-50"
+                    >
+                      Выйти из группы
+                    </button>
                   )}
                 </li>
               ))}

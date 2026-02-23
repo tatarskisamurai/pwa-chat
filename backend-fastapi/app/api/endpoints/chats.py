@@ -200,6 +200,30 @@ async def add_chat_members(
     return None
 
 
+@router.delete("/{chat_id}/members/{user_id}", status_code=204)
+async def remove_chat_member(
+    chat_id: UUID,
+    user_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Выйти из группы: только если user_id = текущий пользователь. Только для группового чата."""
+    r = await db.execute(select(Chat).where(Chat.id == chat_id))
+    chat = r.scalar_one_or_none()
+    if not chat:
+        raise HTTPException(status_code=404, detail="Chat not found")
+    if chat.type != "group":
+        raise HTTPException(status_code=400, detail="Только групповой чат")
+    if user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Можно выйти только из себя")
+    r2 = await db.execute(select(ChatMember).where(ChatMember.chat_id == chat_id, ChatMember.user_id == current_user.id))
+    if not r2.scalar_one_or_none():
+        raise HTTPException(status_code=403, detail="Not a member")
+    await db.execute(delete(ChatMember).where(ChatMember.chat_id == chat_id, ChatMember.user_id == user_id))
+    await db.commit()
+    return None
+
+
 @router.delete("/{chat_id}", status_code=204)
 async def delete_chat(
     chat_id: UUID,
