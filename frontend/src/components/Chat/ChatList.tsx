@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useChatList, useUsersList, useCreateChat } from '@/hooks/useChat';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatMessageDate } from '@/utils/dateFormatter';
@@ -43,14 +44,23 @@ export function ChatList({ selectedChatId, onSelectChat }: ChatListProps) {
       >
         <div className="mb-3 flex items-center justify-between gap-2">
           <h1 className="truncate text-lg font-semibold text-white">Друн чат</h1>
-          <button
-            type="button"
-            onClick={() => logout()}
-            className="min-h-[44px] touch-manipulation rounded-lg px-3 py-2 text-sm text-white/90 hover:bg-white/15 hover:text-white md:py-1.5"
-            title="Выйти"
-          >
-            Выход
-          </button>
+          <div className="flex items-center gap-1">
+            <Link
+              to="/settings"
+              className="min-h-[44px] touch-manipulation rounded-lg px-3 py-2 text-sm text-white/90 hover:bg-white/15 hover:text-white md:py-1.5"
+              title="Настройки"
+            >
+              Настройки
+            </Link>
+            <button
+              type="button"
+              onClick={() => logout()}
+              className="min-h-[44px] touch-manipulation rounded-lg px-3 py-2 text-sm text-white/90 hover:bg-white/15 hover:text-white md:py-1.5"
+              title="Выйти"
+            >
+              Выход
+            </button>
+          </div>
         </div>
         <div className="mb-3 flex items-center gap-2 rounded-xl bg-white/15 py-2 pl-2 pr-3">
           <Avatar alt={user?.username ?? ''} size="sm" src={user?.avatar} />

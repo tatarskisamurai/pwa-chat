@@ -7,6 +7,7 @@ import { Login } from '@/components/Auth/Login';
 import { Register } from '@/components/Auth/Register';
 import { ChatList } from '@/components/Chat/ChatList';
 import { ChatWindow } from '@/components/Chat/ChatWindow';
+import { Settings } from '@/components/Settings/Settings';
 import { Loader } from '@/components/Common/Loader';
 
 const queryClient = new QueryClient();
@@ -72,6 +73,14 @@ function AppRoutes() {
         element={
           <AuthGuard>
             <ChatLayout />
+          </AuthGuard>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <AuthGuard>
+            <Settings />
           </AuthGuard>
         }
       />
