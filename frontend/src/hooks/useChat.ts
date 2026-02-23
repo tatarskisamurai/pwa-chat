@@ -118,3 +118,38 @@ export function useSendMessage(chatId: string) {
     },
   });
 }
+
+export function useUpdateMessage(chatId: string) {
+  const qc = useQueryClient();
+  const queryKey = ['messages', chatId] as const;
+
+  return useMutation({
+    mutationFn: ({ messageId, content }: { messageId: string; content: string | null }) =>
+      api.patch<Message>(`/api/messages/${messageId}`, { content }),
+    onSuccess: (updated) => {
+      const msg = normalizeMessage(updated);
+      qc.setQueryData<Message[]>(queryKey, (old) => {
+        if (!old) return old;
+        const next = old.map((m) => (String(m.id) === String(msg.id) ? msg : m));
+        return sortMessagesByTime(next);
+      });
+      qc.invalidateQueries({ queryKey: ['chats'] });
+    },
+  });
+}
+
+export function useDeleteMessage(chatId: string) {
+  const qc = useQueryClient();
+  const queryKey = ['messages', chatId] as const;
+
+  return useMutation({
+    mutationFn: (messageId: string) => api.delete(`/api/messages/${messageId}`),
+    onSuccess: (_, messageId) => {
+      qc.setQueryData<Message[]>(queryKey, (old) => {
+        if (!old) return old;
+        return old.filter((m) => String(m.id) !== String(messageId));
+      });
+      qc.invalidateQueries({ queryKey: ['chats'] });
+    },
+  });
+}

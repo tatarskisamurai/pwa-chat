@@ -18,6 +18,10 @@ class MessageCreate(MessageBase):
     attachments: list[AttachmentCreate] = []
 
 
+class MessageUpdate(BaseModel):
+    content: str | None = None
+
+
 class AttachmentResponse(BaseModel):
     id: UUID
     url: str
@@ -35,6 +39,7 @@ class MessageResponse(BaseModel):
     content: str | None
     type: str
     created_at: datetime
+    updated_at: datetime | None = None
     attachments: list[AttachmentResponse] = []
 
     class Config:

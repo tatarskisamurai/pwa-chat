@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from app.database import get_db
 from app.models import User, Chat, ChatMember, Message, Attachment
-from app.schemas.message import MessageCreate, MessageResponse, AttachmentResponse, AttachmentCreate
+from app.schemas.message import MessageCreate, MessageUpdate, MessageResponse, AttachmentResponse, AttachmentCreate
 from app.api.deps import get_current_user
 from app.ws_manager import ws_manager
 
@@ -20,6 +20,7 @@ def _message_to_response(msg: Message) -> dict:
         "content": msg.content,
         "type": msg.type,
         "created_at": msg.created_at,
+        "updated_at": getattr(msg, "updated_at", None),
         "attachments": [AttachmentResponse.model_validate(a) for a in msg.attachments],
     }
 
@@ -96,6 +97,80 @@ async def create_message(
     except Exception:
         pass
     return MessageResponse(**resp)
+
+
+@router.patch("/{message_id}", response_model=MessageResponse)
+async def update_message(
+    message_id: UUID,
+    data: MessageUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    r = await db.execute(
+        select(Message)
+        .where(Message.id == message_id)
+        .options(selectinload(Message.attachments))
+    )
+    msg = r.scalar_one_or_none()
+    if not msg:
+        raise HTTPException(status_code=404, detail="Сообщение не найдено")
+    if msg.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Можно редактировать только свои сообщения")
+    r = await db.execute(select(ChatMember).where(ChatMember.chat_id == msg.chat_id, ChatMember.user_id == current_user.id))
+    if not r.scalar_one_or_none():
+        raise HTTPException(status_code=403, detail="Нет доступа к чату")
+    if data.content is not None:
+        msg.content = data.content
+    await db.commit()
+    await db.refresh(msg)
+    resp = _message_to_response(msg)
+    payload = {
+        "id": str(msg.id),
+        "chat_id": str(msg.chat_id),
+        "user_id": str(msg.user_id),
+        "content": msg.content,
+        "type": msg.type,
+        "created_at": msg.created_at.isoformat(),
+        "updated_at": (msg.updated_at.isoformat() if msg.updated_at else None),
+        "attachments": [{"id": str(a.id), "url": a.url, "type": a.type, "filename": a.filename} for a in msg.attachments],
+    }
+    try:
+        await ws_manager.broadcast_to_chat(str(msg.chat_id), {"type": "message_updated", "message": payload})
+        members = await db.execute(select(ChatMember.user_id).where(ChatMember.chat_id == msg.chat_id))
+        for (member_uid,) in members.all():
+            await ws_manager.broadcast_to_user(str(member_uid), {"type": "chats_updated"})
+    except Exception:
+        pass
+    return MessageResponse(**resp)
+
+
+@router.delete("/{message_id}", status_code=204)
+async def delete_message(
+    message_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    r = await db.execute(select(Message).where(Message.id == message_id))
+    msg = r.scalar_one_or_none()
+    if not msg:
+        raise HTTPException(status_code=404, detail="Сообщение не найдено")
+    if msg.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Можно удалять только свои сообщения")
+    r = await db.execute(select(ChatMember).where(ChatMember.chat_id == msg.chat_id, ChatMember.user_id == current_user.id))
+    if not r.scalar_one_or_none():
+        raise HTTPException(status_code=403, detail="Нет доступа к чату")
+    chat_id_str = str(msg.chat_id)
+    chat_id_uuid = msg.chat_id
+    await db.delete(msg)
+    await db.commit()
+    try:
+        await ws_manager.broadcast_to_chat(chat_id_str, {"type": "message_deleted", "message_id": str(message_id)})
+        members = await db.execute(select(ChatMember.user_id).where(ChatMember.chat_id == chat_id_uuid))
+        for (member_uid,) in members.all():
+            await ws_manager.broadcast_to_user(str(member_uid), {"type": "chats_updated"})
+    except Exception:
+        pass
+    return None
 
 
 @router.get("/search", response_model=list[MessageResponse])

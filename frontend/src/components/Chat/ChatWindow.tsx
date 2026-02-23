@@ -4,6 +4,8 @@ import {
   useChat,
   useMessages,
   useSendMessage,
+  useUpdateMessage,
+  useDeleteMessage,
   sortMessagesByTime,
   normalizeMessage,
   applyRealMessage,
@@ -30,6 +32,8 @@ export function ChatWindow({ chatId, onBack }: ChatWindowProps) {
   const { data: chat } = useChat(chatId);
   const { data: messages, isLoading } = useMessages(chatId);
   const sendMessageRest = useSendMessage(chatId ?? '');
+  const updateMessage = useUpdateMessage(chatId ?? '');
+  const deleteMessage = useDeleteMessage(chatId ?? '');
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const chatTitle = chat?.display_name || chat?.name || (chatId ? `Чат ${chatId.slice(0, 8)}` : null);
@@ -56,8 +60,32 @@ export function ChatWindow({ chatId, onBack }: ChatWindowProps) {
       qc.invalidateQueries({ queryKey: ['chats'] });
     };
     socket.on('new_message', handler);
+    const handleUpdated = (payload: { message?: Message }) => {
+      const msg = payload.message;
+      if (!msg || String(msg.chat_id) !== chatId) return;
+      const normalized = normalizeMessage(msg as Message);
+      qc.setQueryData<Message[]>(['messages', chatId], (old) => {
+        if (!old) return old;
+        return sortMessagesByTime(
+          old.map((m) => (String(m.id) === String(normalized.id) ? normalized : m))
+        );
+      });
+      qc.invalidateQueries({ queryKey: ['chats'] });
+    };
+    const handleDeleted = (payload: { message_id?: string }) => {
+      const id = payload.message_id;
+      if (!id) return;
+      qc.setQueryData<Message[]>(['messages', chatId], (old) =>
+        old ? old.filter((m) => String(m.id) !== id) : old
+      );
+      qc.invalidateQueries({ queryKey: ['chats'] });
+    };
+    socket.on('message_updated', handleUpdated);
+    socket.on('message_deleted', handleDeleted);
     return () => {
       socket.off('new_message', handler);
+      socket.off('message_updated', handleUpdated);
+      socket.off('message_deleted', handleDeleted);
     };
   }, [chatId, socket, qc, user?.id]);
 
@@ -150,6 +178,14 @@ export function ChatWindow({ chatId, onBack }: ChatWindowProps) {
             message={msg}
             isOwn={msg.user_id === user?.id}
             showAuthor={sortedMessages.some((m) => m.user_id !== msg.user_id)}
+            onSaveEdit={(messageId, content) =>
+              updateMessage.mutate({ messageId, content })
+            }
+            onDelete={(messageId) => {
+              if (window.confirm('Удалить сообщение?')) deleteMessage.mutate(messageId);
+            }}
+            isUpdating={updateMessage.isPending}
+            isDeleting={deleteMessage.isPending}
           />
         ))}
         <div ref={bottomRef} />

@@ -19,6 +19,7 @@ export interface Message {
   content: string | null;
   type: string;
   created_at: string;
+  updated_at?: string | null;
   attachments?: { id: string; url: string; type?: string; filename?: string }[];
 }
 
