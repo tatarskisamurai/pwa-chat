@@ -5,7 +5,7 @@ from sqlalchemy import select, func, delete
 from sqlalchemy.orm import selectinload
 from app.database import get_db
 from app.models import User, Chat, ChatMember, Message
-from app.schemas.chat import ChatCreate, ChatResponse, ChatUpdate, AddMembersRequest
+from app.schemas.chat import ChatCreate, ChatResponse, ChatUpdate, AddMembersRequest, ChatMemberWithUserResponse
 from app.api.deps import get_current_user
 
 router = APIRouter(prefix="/chats", tags=["chats"])
@@ -100,6 +100,35 @@ async def create_chat(
     await db.refresh(chat)
     # Не шлём chats_updated получателю — чат появится у него только после первого сообщения
     return ChatResponse(**(await _chat_response(chat, db, current_user)))
+
+
+@router.get("/{chat_id}/members", response_model=list[ChatMemberWithUserResponse])
+async def list_chat_members(
+    chat_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Список участников чата. Доступно всем участникам чата."""
+    r = await db.execute(select(ChatMember).where(ChatMember.chat_id == chat_id, ChatMember.user_id == current_user.id))
+    if not r.scalar_one_or_none():
+        raise HTTPException(status_code=403, detail="Not a member")
+    result = await db.execute(
+        select(ChatMember, User)
+        .join(User, User.id == ChatMember.user_id)
+        .where(ChatMember.chat_id == chat_id)
+        .order_by(ChatMember.role.desc(), User.username)
+    )
+    out = []
+    for row in result.all():
+        member, u = row
+        out.append(ChatMemberWithUserResponse(
+            user_id=member.user_id,
+            role=member.role,
+            username=u.username or "",
+            handle=getattr(u, "handle", None) or u.username or "",
+            avatar=getattr(u, "avatar", None),
+        ))
+    return out
 
 
 @router.get("/{chat_id}", response_model=ChatResponse)

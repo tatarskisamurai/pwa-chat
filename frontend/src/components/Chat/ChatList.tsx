@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { formatMessageDate } from '@/utils/dateFormatter';
 import { Loader } from '@/components/Common/Loader';
 import { Avatar } from '@/components/Common/Avatar';
+import { GroupParticipants } from './GroupParticipants';
 import type { Chat } from '@/types/chat';
 import type { User } from '@/types/user';
 
@@ -19,6 +20,7 @@ export function ChatList({ selectedChatId, onSelectChat }: ChatListProps) {
   const [creatingGroup, setCreatingGroup] = useState(false);
   const [groupName, setGroupName] = useState('');
   const [selectedForGroup, setSelectedForGroup] = useState<User[]>([]);
+  const [participantsChatId, setParticipantsChatId] = useState<string | null>(null);
   const { data: chats, isLoading: chatsLoading } = useChatList();
   const { data: searchUsers, isLoading: searchLoading, isError: searchError, error: searchErr } = useUsersList(searchQuery);
   const createChat = useCreateChat();
@@ -224,41 +226,56 @@ export function ChatList({ selectedChatId, onSelectChat }: ChatListProps) {
               <ul className="p-2">
                 {chats.map((chat: Chat) => (
                   <li key={chat.id}>
-                    <button
-                      type="button"
-                      onClick={() => onSelectChat(chat.id)}
-                      className={`flex w-full touch-manipulation items-center gap-3 rounded-xl px-3 py-3 text-left transition ${
-                        selectedChatId === chat.id ? 'bg-green-50 text-gray-900' : 'text-gray-800 hover:bg-gray-100'
-                      }`}
-                    >
-                      {chat.type === 'group' ? (
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-100 text-green-600">
-                          <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-                          </svg>
-                        </div>
-                      ) : (
-                        <Avatar alt={chat.display_name || chat.name || chat.id} size="md" />
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-medium">
-                          {chat.display_name || chat.name || `Чат ${chat.id.slice(0, 8)}`}
-                        </p>
-                        {chat.type === 'group' && chat.members_count != null && (
-                          <p className="text-xs text-gray-500">{chat.members_count} участников</p>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => onSelectChat(chat.id)}
+                        className={`flex min-w-0 flex-1 touch-manipulation items-center gap-3 rounded-xl px-3 py-3 text-left transition ${
+                          selectedChatId === chat.id ? 'bg-green-50 text-gray-900' : 'text-gray-800 hover:bg-gray-100'
+                        }`}
+                      >
+                        {chat.type === 'group' ? (
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-100 text-green-600">
+                            <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                            </svg>
+                          </div>
+                        ) : (
+                          <Avatar alt={chat.display_name || chat.name || chat.id} size="md" />
                         )}
-                        {chat.last_message && (
-                          <p className="truncate text-sm text-gray-500">
-                            {chat.last_message.content || '—'}
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-medium">
+                            {chat.display_name || chat.name || `Чат ${chat.id.slice(0, 8)}`}
                           </p>
+                          {chat.type === 'group' && chat.members_count != null && (
+                            <p className="text-xs text-gray-500">{chat.members_count} участников</p>
+                          )}
+                          {chat.last_message && (
+                            <p className="truncate text-sm text-gray-500">
+                              {chat.last_message.content || '—'}
+                            </p>
+                          )}
+                        </div>
+                        {chat.last_message && (
+                          <span className="text-xs text-gray-500">
+                            {formatMessageDate(chat.last_message.created_at)}
+                          </span>
                         )}
-                      </div>
-                      {chat.last_message && (
-                        <span className="text-xs text-gray-500">
-                          {formatMessageDate(chat.last_message.created_at)}
-                        </span>
+                      </button>
+                      {chat.type === 'group' && (
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setParticipantsChatId(chat.id); }}
+                          className="shrink-0 rounded-lg p-2 text-gray-500 hover:bg-gray-200 hover:text-gray-700"
+                          title="Участники"
+                          aria-label="Участники"
+                        >
+                          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                          </svg>
+                        </button>
                       )}
-                    </button>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -266,6 +283,17 @@ export function ChatList({ selectedChatId, onSelectChat }: ChatListProps) {
           </>
         )}
       </div>
+
+      {participantsChatId && (() => {
+        const chat = chats?.find((c) => c.id === participantsChatId);
+        return (
+          <GroupParticipants
+            chatId={participantsChatId}
+            chatName={chat?.display_name ?? chat?.name ?? null}
+            onClose={() => setParticipantsChatId(null)}
+          />
+        );
+      })()}
     </div>
   );
 }

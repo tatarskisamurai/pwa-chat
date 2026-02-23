@@ -1,3 +1,11 @@
+export interface ChatMemberWithUser {
+  user_id: string;
+  role: string;
+  username: string;
+  handle: string;
+  avatar?: string | null;
+}
+
 export interface Chat {
   id: string;
   type: 'private' | 'group';
@@ -5,7 +13,7 @@ export interface Chat {
   display_name?: string | null;  // для личного чата — имя собеседника
   created_at: string;
   members_count?: number;
-  current_user_role?: 'admin' | 'member' | null;  // роль текущего пользователя в чате
+  current_user_role?: 'admin' | 'member' | null;
   last_message?: {
     id: string;
     content: string | null;

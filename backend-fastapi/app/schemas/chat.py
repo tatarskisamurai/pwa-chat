@@ -29,6 +29,15 @@ class ChatMemberResponse(BaseModel):
         from_attributes = True
 
 
+class ChatMemberWithUserResponse(BaseModel):
+    """Участник чата с данными пользователя для экрана «Участники»."""
+    user_id: UUID
+    role: str
+    username: str
+    handle: str
+    avatar: str | None = None
+
+
 class ChatResponse(BaseModel):
     id: UUID
     type: str

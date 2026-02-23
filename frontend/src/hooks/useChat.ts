@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/services/api';
-import type { Chat, Message } from '@/types/chat';
+import type { Chat, ChatMemberWithUser, Message } from '@/types/chat';
 import type { User } from '@/types/user';
 
 export function useUsersList(search: string) {
@@ -23,6 +23,14 @@ export function useChat(chatId: string | null) {
   return useQuery({
     queryKey: ['chat', chatId],
     queryFn: () => api.get<Chat>(`/api/chats/${chatId}`),
+    enabled: !!chatId,
+  });
+}
+
+export function useChatMembers(chatId: string | null) {
+  return useQuery({
+    queryKey: ['chatMembers', chatId],
+    queryFn: () => api.get<ChatMemberWithUser[]>(`/api/chats/${chatId}/members`),
     enabled: !!chatId,
   });
 }
